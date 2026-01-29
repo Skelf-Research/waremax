@@ -1,0 +1,75 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/waremax-core",
+    "crates/waremax-map",
+    "crates/waremax-storage",
+    "crates/waremax-entities",
+    "crates/waremax-policies",
+    "crates/waremax-config",
+    "crates/waremax-metrics",
+    "crates/waremax-sim",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/waremax/waremax"
+
+[workspace.dependencies]
+# Serialization
+rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Database
+sled = "0.34"
+
+# Random number generation
+rand = "0.8"
+rand_chacha = "0.3"
+rand_distr = "0.4"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Memory allocator
+mimalloc = "0.1"
+
+# CLI
+clap = { version = "4.0", features = ["derive"] }
+
+# Internal crates
+waremax-core = { path = "crates/waremax-core" }
+waremax-map = { path = "crates/waremax-map" }
+waremax-storage = { path = "crates/waremax-storage" }
+waremax-entities = { path = "crates/waremax-entities" }
+waremax-policies = { path = "crates/waremax-policies" }
+waremax-config = { path = "crates/waremax-config" }
+waremax-metrics = { path = "crates/waremax-metrics" }
+waremax-sim = { path = "crates/waremax-sim" }
+
+[package]
+name = "waremax"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "waremax"
+path = "src/main.rs"
+
+[dependencies]
+waremax-core = { workspace = true }
+waremax-map = { workspace = true }
+waremax-storage = { workspace = true }
+waremax-entities = { workspace = true }
+waremax-policies = { workspace = true }
+waremax-config = { workspace = true }
+waremax-metrics = { workspace = true }
+waremax-sim = { workspace = true }
+mimalloc = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }

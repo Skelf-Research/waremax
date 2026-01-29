@@ -1,0 +1,13 @@
+[package]
+name = "waremax-core"
+version.workspace = true
+edition.workspace = true
+description = "Core types and DES kernel for Waremax simulation"
+
+[dependencies]
+rkyv = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+rand_distr = { workspace = true }

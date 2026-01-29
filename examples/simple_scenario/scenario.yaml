@@ -1,0 +1,65 @@
+# Simple Warehouse Scenario
+# Uses the scenario config schema from docs/scenario-config.md
+
+seed: 12345
+
+simulation:
+  duration_minutes: 60
+  warmup_minutes: 5
+  time_unit: "seconds"
+
+map:
+  file: "map.json"
+
+storage:
+  file: "storage.yaml"
+
+robots:
+  count: 3
+  max_speed_mps: 1.5
+  max_payload_kg: 25.0
+
+stations:
+  - id: "S1"
+    node: "0"
+    type: "pick"
+    concurrency: 2
+    queue_capacity: null
+    service_time_s:
+      base: 5.0
+      per_item: 2.0
+
+orders:
+  arrival_process:
+    type: "poisson"
+    rate_per_min: 4.0
+  lines_per_order:
+    type: "negbin"
+    mean: 2.0
+    dispersion: 1.0
+  sku_popularity:
+    type: "zipf"
+    alpha: 1.0
+  due_times:
+    type: "fixed_offset"
+    minutes: 60.0
+
+policies:
+  task_allocation:
+    type: "nearest_robot"
+  station_assignment:
+    type: "least_queue"
+  batching:
+    type: "none"
+  priority:
+    type: "strict_priority"
+
+traffic:
+  policy: "wait_at_node"
+  edge_capacity_default: 1
+  node_capacity_default: 1
+
+routing:
+  algorithm: "dijkstra"
+  congestion_aware: false
+  cache_routes: true
