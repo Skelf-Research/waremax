@@ -108,6 +108,69 @@ impl PriorityPolicy for DueTimePolicy {
     }
 }
 
+// === v1: Additional Priority Policies ===
+
+/// Weighted fair queuing across task types
+/// Provides balanced processing of pick, putaway, and replenishment tasks
+pub struct WeightedFairPolicy {
+    /// Weight for pick tasks (lower = more frequent selection)
+    pick_weight: u32,
+    /// Weight for putaway tasks
+    putaway_weight: u32,
+    /// Weight for replenishment tasks
+    replen_weight: u32,
+}
+
+impl WeightedFairPolicy {
+    pub fn new(pick_weight: u32, putaway_weight: u32, replen_weight: u32) -> Self {
+        Self {
+            pick_weight,
+            putaway_weight,
+            replen_weight,
+        }
+    }
+
+    fn task_weight(&self, task_type: &TaskType) -> u32 {
+        match task_type {
+            TaskType::Pick => self.pick_weight,
+            TaskType::Putaway => self.putaway_weight,
+            TaskType::Replenishment => self.replen_weight,
+        }
+    }
+}
+
+impl Default for WeightedFairPolicy {
+    fn default() -> Self {
+        // Default: picks get highest priority (weight 1)
+        // Putaway and replenishment get lower priority (weight 2 and 3)
+        Self::new(1, 2, 3)
+    }
+}
+
+impl PriorityPolicy for WeightedFairPolicy {
+    fn prioritize(&self, ctx: &PolicyContext, tasks: &mut [TaskId]) {
+        // Sort by virtual timestamp: creation_time * weight
+        // Lower virtual timestamp = higher priority
+        tasks.sort_by(|a, b| {
+            let vt_a = ctx.tasks.get(a).map(|t| {
+                let weight = self.task_weight(&t.task_type);
+                t.created_at.as_seconds() * weight as f64
+            }).unwrap_or(f64::MAX);
+
+            let vt_b = ctx.tasks.get(b).map(|t| {
+                let weight = self.task_weight(&t.task_type);
+                t.created_at.as_seconds() * weight as f64
+            }).unwrap_or(f64::MAX);
+
+            vt_a.partial_cmp(&vt_b).unwrap_or(std::cmp::Ordering::Equal)
+        });
+    }
+
+    fn name(&self) -> &'static str {
+        "weighted_fair"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

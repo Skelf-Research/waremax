@@ -1,0 +1,13 @@
+[package]
+name = "waremax-analysis"
+version.workspace = true
+edition.workspace = true
+description = "Root cause analysis and diagnostics for Waremax simulations"
+
+[dependencies]
+waremax-core = { workspace = true }
+waremax-entities = { workspace = true }
+waremax-metrics = { workspace = true }
+waremax-map = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

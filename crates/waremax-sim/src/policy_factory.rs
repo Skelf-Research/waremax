@@ -1,12 +1,14 @@
 //! Policy factory - creates policy instances from configuration
 
-use waremax_config::PolicyConfig;
+use waremax_config::{PolicyConfig, TrafficConfig};
 use waremax_policies::{
     TaskAllocationPolicy, StationAssignmentPolicy, BatchingPolicy, PriorityPolicy,
+    TrafficPolicy,
     NearestRobotPolicy, RoundRobinPolicy, LeastBusyPolicy,
     LeastQueuePolicy, NearestStationPolicy,
     NoBatchingPolicy, ZoneBatchingPolicy,
     StrictPriorityPolicy, FifoPolicy, DueTimePolicy,
+    WaitAtNodePolicy, RerouteOnWaitPolicy, AdaptiveTrafficPolicy,
 };
 use crate::world::PolicySet;
 
@@ -17,6 +19,36 @@ pub fn create_policies(config: &PolicyConfig) -> PolicySet {
         station_assignment: create_station_assignment(config),
         batching: create_batching(config),
         priority: create_priority(config),
+        traffic: Box::new(WaitAtNodePolicy::new()), // Default traffic policy
+    }
+}
+
+/// Create a PolicySet with traffic config (v1)
+pub fn create_policies_with_traffic(config: &PolicyConfig, traffic_config: &TrafficConfig) -> PolicySet {
+    PolicySet {
+        task_allocation: create_task_allocation(config),
+        station_assignment: create_station_assignment(config),
+        batching: create_batching(config),
+        priority: create_priority(config),
+        traffic: create_traffic_policy(traffic_config),
+    }
+}
+
+fn create_traffic_policy(config: &TrafficConfig) -> Box<dyn TrafficPolicy> {
+    match config.policy.as_str() {
+        "wait_at_node" => Box::new(WaitAtNodePolicy::new()),
+        "reroute_on_wait" => Box::new(RerouteOnWaitPolicy::new(
+            config.wait_threshold_s,
+            config.max_reroute_attempts,
+        )),
+        "adaptive" => Box::new(AdaptiveTrafficPolicy::new(
+            config.wait_threshold_s,
+            config.node_capacity_default as usize,
+        )),
+        unknown => {
+            eprintln!("Warning: Unknown traffic policy '{}', using wait_at_node", unknown);
+            Box::new(WaitAtNodePolicy::new())
+        }
     }
 }
 

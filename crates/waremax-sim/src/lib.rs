@@ -12,6 +12,6 @@ pub use distributions::{
 };
 pub use distribution_factory::create_distributions;
 pub use handlers::EventHandler;
-pub use policy_factory::create_policies;
+pub use policy_factory::{create_policies, create_policies_with_traffic};
 pub use runner::SimulationRunner;
 pub use world::{PolicySet, World};

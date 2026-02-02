@@ -9,6 +9,8 @@ members = [
     "crates/waremax-config",
     "crates/waremax-metrics",
     "crates/waremax-sim",
+    "crates/waremax-testing",
+    "crates/waremax-analysis",
 ]
 
 [workspace.package]
@@ -51,6 +53,8 @@ waremax-policies = { path = "crates/waremax-policies" }
 waremax-config = { path = "crates/waremax-config" }
 waremax-metrics = { path = "crates/waremax-metrics" }
 waremax-sim = { path = "crates/waremax-sim" }
+waremax-testing = { path = "crates/waremax-testing" }
+waremax-analysis = { path = "crates/waremax-analysis" }
 
 [package]
 name = "waremax"
@@ -70,6 +74,10 @@ waremax-policies = { workspace = true }
 waremax-config = { workspace = true }
 waremax-metrics = { workspace = true }
 waremax-sim = { workspace = true }
+waremax-testing = { workspace = true }
+waremax-analysis = { workspace = true }
 mimalloc = { workspace = true }
 clap = { workspace = true }
 anyhow = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }

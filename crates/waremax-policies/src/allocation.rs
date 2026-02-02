@@ -117,6 +117,133 @@ impl TaskAllocationPolicy for LeastBusyPolicy {
     }
 }
 
+// === v1: Additional Task Allocation Policies ===
+
+/// Auction-based task allocation
+/// Each robot "bids" based on estimated completion cost
+pub struct AuctionPolicy {
+    /// Weight for travel distance in bid calculation
+    travel_weight: f64,
+    /// Weight for current queue size
+    queue_weight: f64,
+}
+
+impl AuctionPolicy {
+    pub fn new(travel_weight: f64, queue_weight: f64) -> Self {
+        Self {
+            travel_weight,
+            queue_weight,
+        }
+    }
+}
+
+impl Default for AuctionPolicy {
+    fn default() -> Self {
+        Self::new(1.0, 0.5)
+    }
+}
+
+impl TaskAllocationPolicy for AuctionPolicy {
+    fn allocate(&self, ctx: &PolicyContext, task_id: TaskId) -> Option<RobotId> {
+        let task = ctx.tasks.get(&task_id)?;
+        let pickup_node = task.source.access_node;
+
+        // Each robot "bids" - lower bid wins
+        let mut candidates: Vec<(RobotId, f64)> = ctx
+            .robots
+            .values()
+            .filter(|r| r.is_available())
+            .map(|r| {
+                let travel_dist = ctx.map.euclidean_distance(r.current_node, pickup_node);
+                let queue_size = r.task_queue.len() as f64;
+
+                // Calculate bid: weighted sum of distance and queue
+                let bid = (travel_dist * self.travel_weight) + (queue_size * self.queue_weight * 100.0);
+                (r.id, bid)
+            })
+            .collect();
+
+        // Sort by bid (lowest first)
+        candidates.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+        candidates.first().map(|(id, _)| *id)
+    }
+
+    fn name(&self) -> &'static str {
+        "auction"
+    }
+}
+
+/// Workload-balanced allocation policy
+/// Aims to equalize total estimated work across robots
+pub struct WorkloadBalancedPolicy {
+    /// Consider travel time in workload estimation
+    include_travel: bool,
+}
+
+impl WorkloadBalancedPolicy {
+    pub fn new(include_travel: bool) -> Self {
+        Self { include_travel }
+    }
+}
+
+impl Default for WorkloadBalancedPolicy {
+    fn default() -> Self {
+        Self::new(true)
+    }
+}
+
+impl TaskAllocationPolicy for WorkloadBalancedPolicy {
+    fn allocate(&self, ctx: &PolicyContext, task_id: TaskId) -> Option<RobotId> {
+        let task = ctx.tasks.get(&task_id)?;
+        let pickup_node = task.source.access_node;
+
+        // Calculate current workload per robot
+        let mut candidates: Vec<(RobotId, f64, f64)> = ctx
+            .robots
+            .values()
+            .filter(|r| r.is_available())
+            .map(|r| {
+                // Estimate current workload from queue size
+                let current_workload = r.task_queue.len() as f64;
+
+                // Estimate new workload if assigned
+                let travel_penalty = if self.include_travel {
+                    ctx.map.euclidean_distance(r.current_node, pickup_node) / r.max_speed_mps
+                } else {
+                    0.0
+                };
+
+                let new_workload = current_workload + 1.0 + (travel_penalty / 60.0); // Normalize travel time
+
+                (r.id, new_workload, current_workload)
+            })
+            .collect();
+
+        if candidates.is_empty() {
+            return None;
+        }
+
+        // Find max workload across fleet if this task were assigned to each robot
+        // Select robot that minimizes the max workload
+        let max_current: f64 = candidates.iter().map(|(_, _, cur)| *cur).fold(0.0, f64::max);
+
+        candidates.sort_by(|a, b| {
+            // Primary: minimize new workload
+            // Secondary: prefer robot that increases fleet imbalance the least
+            let a_impact = a.1 - max_current;
+            let b_impact = b.1 - max_current;
+            a_impact.partial_cmp(&b_impact).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        candidates.first().map(|(id, _, _)| *id)
+    }
+
+    fn name(&self) -> &'static str {
+        "workload_balanced"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

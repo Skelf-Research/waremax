@@ -94,6 +94,98 @@ impl BatchingPolicy for ZoneBatchingPolicy {
     }
 }
 
+// === v1: Additional Batching Policies ===
+
+/// Groups tasks by destination station
+/// Respects max_items and optional max_weight constraints
+pub struct StationBatchPolicy {
+    max_items: u32,
+    max_weight_kg: Option<f64>,
+}
+
+impl StationBatchPolicy {
+    pub fn new(max_items: u32, max_weight_kg: Option<f64>) -> Self {
+        Self { max_items, max_weight_kg }
+    }
+
+    pub fn items_only(max_items: u32) -> Self {
+        Self::new(max_items, None)
+    }
+}
+
+impl Default for StationBatchPolicy {
+    fn default() -> Self {
+        Self::new(5, None)
+    }
+}
+
+impl BatchingPolicy for StationBatchPolicy {
+    fn batch(&self, ctx: &PolicyContext, pending_tasks: &[TaskId]) -> Vec<Vec<TaskId>> {
+        use std::collections::HashMap;
+
+        // Group tasks by destination station
+        let mut by_station: HashMap<waremax_core::StationId, Vec<TaskId>> = HashMap::new();
+
+        for &task_id in pending_tasks {
+            if let Some(task) = ctx.tasks.get(&task_id) {
+                by_station
+                    .entry(task.destination_station)
+                    .or_default()
+                    .push(task_id);
+            }
+        }
+
+        let mut batches = Vec::new();
+
+        // For each station group, create batches respecting limits
+        for (_station_id, station_tasks) in by_station {
+            let mut current_batch = Vec::new();
+            let mut current_weight = 0.0;
+
+            for task_id in station_tasks {
+                // Check if we need to start a new batch
+                let at_item_limit = current_batch.len() >= self.max_items as usize;
+                let at_weight_limit = if let Some(max_weight) = self.max_weight_kg {
+                    // Estimate task weight from quantity (assume 1kg per item as default)
+                    let task_weight = ctx.tasks.get(&task_id)
+                        .map(|t| t.quantity as f64)
+                        .unwrap_or(1.0);
+                    current_weight + task_weight > max_weight
+                } else {
+                    false
+                };
+
+                if !current_batch.is_empty() && (at_item_limit || at_weight_limit) {
+                    batches.push(current_batch);
+                    current_batch = Vec::new();
+                    current_weight = 0.0;
+                }
+
+                // Add task to current batch
+                if let Some(task) = ctx.tasks.get(&task_id) {
+                    current_weight += task.quantity as f64;
+                }
+                current_batch.push(task_id);
+            }
+
+            if !current_batch.is_empty() {
+                batches.push(current_batch);
+            }
+        }
+
+        // If no batches were created, return individual tasks
+        if batches.is_empty() {
+            return pending_tasks.iter().map(|&t| vec![t]).collect();
+        }
+
+        batches
+    }
+
+    fn name(&self) -> &'static str {
+        "station_batch"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

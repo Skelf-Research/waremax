@@ -82,6 +82,147 @@ impl StationAssignmentPolicy for NearestStationPolicy {
     }
 }
 
+// === v1: Additional Station Assignment Policies ===
+
+/// Assign to station with fastest expected service completion
+/// Considers both queue wait time and travel time
+pub struct FastestServicePolicy {
+    station_type: StationType,
+    /// Average service time per item (seconds) for estimation
+    avg_service_time_s: f64,
+}
+
+impl FastestServicePolicy {
+    pub fn new(station_type: StationType, avg_service_time_s: f64) -> Self {
+        Self {
+            station_type,
+            avg_service_time_s,
+        }
+    }
+
+    pub fn for_pick() -> Self {
+        Self::new(StationType::Pick, 12.0)
+    }
+}
+
+impl Default for FastestServicePolicy {
+    fn default() -> Self {
+        Self::for_pick()
+    }
+}
+
+impl StationAssignmentPolicy for FastestServicePolicy {
+    fn assign(&self, ctx: &PolicyContext, task: &Task) -> Option<StationId> {
+        let task_node = task.source.access_node;
+
+        ctx.stations
+            .values()
+            .filter(|s| s.station_type == self.station_type)
+            .filter(|s| s.can_accept())
+            .min_by(|a, b| {
+                // Estimate total time: travel + queue wait + service
+                let travel_a = ctx.map.euclidean_distance(task_node, a.node) / 1.5; // Assume 1.5 m/s
+                let travel_b = ctx.map.euclidean_distance(task_node, b.node) / 1.5;
+
+                // Queue wait: items in queue * avg service time
+                let wait_a = a.queue_length() as f64 * self.avg_service_time_s;
+                let wait_b = b.queue_length() as f64 * self.avg_service_time_s;
+
+                let total_a = travel_a + wait_a + self.avg_service_time_s;
+                let total_b = travel_b + wait_b + self.avg_service_time_s;
+
+                total_a.partial_cmp(&total_b).unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .map(|s| s.id)
+    }
+
+    fn name(&self) -> &'static str {
+        "fastest_service"
+    }
+}
+
+/// Assign urgent orders to less-congested stations
+/// Non-urgent orders go to nearest station
+pub struct DueTimePriorityStationPolicy {
+    station_type: StationType,
+    /// Urgency threshold in minutes (order is urgent if due_time - current_time < threshold)
+    urgency_threshold_min: f64,
+}
+
+impl DueTimePriorityStationPolicy {
+    pub fn new(station_type: StationType, urgency_threshold_min: f64) -> Self {
+        Self {
+            station_type,
+            urgency_threshold_min,
+        }
+    }
+
+    pub fn for_pick() -> Self {
+        Self::new(StationType::Pick, 30.0) // 30 minute urgency threshold
+    }
+}
+
+impl Default for DueTimePriorityStationPolicy {
+    fn default() -> Self {
+        Self::for_pick()
+    }
+}
+
+impl StationAssignmentPolicy for DueTimePriorityStationPolicy {
+    fn assign(&self, ctx: &PolicyContext, task: &Task) -> Option<StationId> {
+        let task_node = task.source.access_node;
+
+        // Check if order is urgent
+        let is_urgent = if let Some(order_id) = task.order_id {
+            if let Some(order) = ctx.orders.get(&order_id) {
+                if let Some(due_time) = order.due_time {
+                    let time_remaining = due_time - ctx.current_time;
+                    time_remaining.as_seconds() < (self.urgency_threshold_min * 60.0)
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        let matching_stations: Vec<_> = ctx
+            .stations
+            .values()
+            .filter(|s| s.station_type == self.station_type)
+            .filter(|s| s.can_accept())
+            .collect();
+
+        if matching_stations.is_empty() {
+            return None;
+        }
+
+        if is_urgent {
+            // Urgent: assign to station with shortest queue
+            matching_stations
+                .into_iter()
+                .min_by_key(|s| s.queue_length())
+                .map(|s| s.id)
+        } else {
+            // Non-urgent: assign to nearest station
+            matching_stations
+                .into_iter()
+                .min_by(|a, b| {
+                    let dist_a = ctx.map.euclidean_distance(task_node, a.node);
+                    let dist_b = ctx.map.euclidean_distance(task_node, b.node);
+                    dist_a.partial_cmp(&dist_b).unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .map(|s| s.id)
+        }
+    }
+
+    fn name(&self) -> &'static str {
+        "due_time_priority"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

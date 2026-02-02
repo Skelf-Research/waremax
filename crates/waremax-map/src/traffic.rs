@@ -2,6 +2,7 @@
 
 use waremax_core::{NodeId, EdgeId, RobotId};
 use std::collections::{HashMap, HashSet};
+use crate::deadlock::{WaitForGraph, WaitingFor};
 
 /// Manages traffic flow and capacity constraints in the warehouse
 pub struct TrafficManager {
@@ -11,6 +12,10 @@ pub struct TrafficManager {
     node_capacity: HashMap<NodeId, u32>,
     default_edge_capacity: u32,
     default_node_capacity: u32,
+    /// v2: Wait-for graph for deadlock detection
+    pub wait_graph: WaitForGraph,
+    /// v2: Whether deadlock detection is enabled
+    pub deadlock_detection_enabled: bool,
 }
 
 impl TrafficManager {
@@ -22,7 +27,14 @@ impl TrafficManager {
             node_capacity: HashMap::new(),
             default_edge_capacity,
             default_node_capacity,
+            wait_graph: WaitForGraph::new(),
+            deadlock_detection_enabled: false,
         }
+    }
+
+    /// Enable or disable deadlock detection
+    pub fn set_deadlock_detection(&mut self, enabled: bool) {
+        self.deadlock_detection_enabled = enabled;
     }
 
     pub fn set_edge_capacity(&mut self, edge: EdgeId, capacity: u32) {
@@ -95,5 +107,68 @@ impl TrafficManager {
 
     pub fn robots_at_node(&self, node: NodeId) -> impl Iterator<Item = RobotId> + '_ {
         self.node_occupancy.get(&node).into_iter().flat_map(|s| s.iter().copied())
+    }
+
+    // === v2: Deadlock Detection Methods ===
+
+    /// Record that a robot is waiting for an edge
+    ///
+    /// Automatically determines which robots are blocking the edge.
+    pub fn record_edge_wait(&mut self, robot: RobotId, edge: EdgeId) {
+        if !self.deadlock_detection_enabled {
+            return;
+        }
+
+        let blockers: Vec<RobotId> = self.robots_on_edge(edge)
+            .filter(|&r| r != robot)
+            .collect();
+
+        self.wait_graph.add_wait(robot, WaitingFor::Edge {
+            edge_id: edge,
+            blocked_by: blockers,
+        });
+    }
+
+    /// Record that a robot is waiting for a node
+    ///
+    /// Automatically determines which robots are blocking the node.
+    pub fn record_node_wait(&mut self, robot: RobotId, node: NodeId) {
+        if !self.deadlock_detection_enabled {
+            return;
+        }
+
+        let blockers: Vec<RobotId> = self.robots_at_node(node)
+            .filter(|&r| r != robot)
+            .collect();
+
+        self.wait_graph.add_wait(robot, WaitingFor::Node {
+            node_id: node,
+            blocked_by: blockers,
+        });
+    }
+
+    /// Clear a robot's wait status (e.g., when it acquires the resource)
+    pub fn clear_wait(&mut self, robot: RobotId) {
+        self.wait_graph.remove_wait(robot);
+    }
+
+    /// Check if a robot is currently waiting
+    pub fn is_waiting(&self, robot: RobotId) -> bool {
+        self.wait_graph.is_waiting(robot)
+    }
+
+    /// Check for deadlocks in the current wait-for graph
+    ///
+    /// Returns Some(cycle) if a deadlock is detected, None otherwise.
+    pub fn check_deadlock(&self) -> Option<Vec<RobotId>> {
+        if !self.deadlock_detection_enabled {
+            return None;
+        }
+        self.wait_graph.detect_cycle()
+    }
+
+    /// Get all robots currently waiting
+    pub fn waiting_count(&self) -> usize {
+        self.wait_graph.waiting_count()
     }
 }
