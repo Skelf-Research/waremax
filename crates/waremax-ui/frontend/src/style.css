@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-warehouse-bg text-gray-100;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-indigo-600 hover:bg-indigo-500 text-white
+           shadow-lg shadow-indigo-500/20;
+  }
+  .btn-secondary {
+    @apply btn bg-warehouse-surface hover:bg-gray-700 text-gray-200
+           border border-warehouse-border;
+  }
+  .btn-danger {
+    @apply btn bg-red-600/80 hover:bg-red-500 text-white;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+  .btn-icon {
+    @apply p-2 rounded-lg transition-colors;
+  }
+  .card {
+    @apply bg-warehouse-surface rounded-xl border border-warehouse-border p-4;
+  }
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+  .speed-btn {
+    @apply px-3 py-1.5 rounded-md text-sm font-mono transition-all;
+  }
+  .speed-btn.active {
+    @apply bg-indigo-600 text-white shadow-lg shadow-indigo-500/30;
+  }
+  .speed-btn:not(.active) {
+    @apply bg-warehouse-surface text-gray-400 hover:text-white hover:bg-gray-700;
+  }
+}
+
+/* Canvas rendering optimizations */
+canvas {
+  image-rendering: optimizeSpeed;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}

@@ -838,6 +838,7 @@ mod tests {
                 bidirectional: true,
                 direction: None,
                 capacity: 1,
+                speed_multiplier: None,
             }],
             constraints: ConstraintsConfig::default(),
         };
@@ -863,6 +864,8 @@ mod tests {
                 levels: 3,
                 bins_per_level: 4,
                 zone: None,
+                base_access_time_s: None,
+                per_level_time_s: None,
             }],
             placements: [("SKU001".to_string(), vec![PlacementConfig {
                 rack: "R1".to_string(),

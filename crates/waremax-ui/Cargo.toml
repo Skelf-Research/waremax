@@ -1,0 +1,37 @@
+[package]
+name = "waremax-ui"
+version.workspace = true
+edition.workspace = true
+description = "Embedded web UI for Waremax simulation visualization"
+
+[dependencies]
+# Internal crates
+waremax-core = { workspace = true }
+waremax-map = { workspace = true }
+waremax-entities = { workspace = true }
+waremax-config = { workspace = true }
+waremax-metrics = { workspace = true }
+waremax-sim = { workspace = true }
+waremax-testing = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Web server
+axum = { version = "0.7", features = ["ws", "macros"] }
+tokio = { version = "1.0", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "compression-gzip", "fs"] }
+
+# Asset embedding
+rust-embed = { version = "8.0", features = ["compression"] }
+mime_guess = "2.0"
+
+# Utilities
+uuid = { version = "1.0", features = ["v4"] }
+futures = "0.3"
+tokio-stream = "0.1"
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }

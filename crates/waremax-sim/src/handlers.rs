@@ -528,13 +528,21 @@ impl EventHandler {
                 world.attribution_collector.start_phase(task_id, DelayCategory::StationService, current_time);
             }
 
-            // Get task quantity for service time calculation
-            let item_count = world.get_task(task_id).map(|t| t.quantity).unwrap_or(1);
+            // Get task quantity and bin location for service time calculation
+            let (item_count, level_access_time) = world.get_task(task_id)
+                .map(|t| {
+                    let access_time = world.racks.get(&t.source.bin_address.rack_id)
+                        .map(|rack| rack.access_time(t.source.bin_address.level))
+                        .unwrap_or(0.0);
+                    (t.quantity, access_time)
+                })
+                .unwrap_or((1, 0.0));
 
-            // Calculate service time based on item count
-            let service_time = world.get_station(station_id)
+            // Calculate service time based on item count plus level access time
+            let base_service_time = world.get_station(station_id)
                 .map(|s| s.service_time.calculate(item_count))
                 .unwrap_or(SimTime::from_seconds(10.0));
+            let service_time = base_service_time + SimTime::from_seconds(level_access_time);
 
             kernel.schedule_after(service_time, SimEvent::StationServiceEnd {
                 robot_id,
@@ -559,11 +567,19 @@ impl EventHandler {
         task_id: waremax_core::TaskId,
         metrics: &mut MetricsCollector,
     ) {
-        // Get service time from task quantity
-        let item_count = world.get_task(task_id).map(|t| t.quantity).unwrap_or(1);
-        let service_time = world.get_station(station_id)
+        // Get service time from task quantity plus level access time
+        let (item_count, level_access_time) = world.get_task(task_id)
+            .map(|t| {
+                let access_time = world.racks.get(&t.source.bin_address.rack_id)
+                    .map(|rack| rack.access_time(t.source.bin_address.level))
+                    .unwrap_or(0.0);
+                (t.quantity, access_time)
+            })
+            .unwrap_or((1, 0.0));
+        let base_service_time = world.get_station(station_id)
             .map(|s| s.service_time.calculate(item_count))
             .unwrap_or(SimTime::from_seconds(10.0));
+        let service_time = base_service_time + SimTime::from_seconds(level_access_time);
 
         // Complete service with actual service time
         if let Some(station) = world.get_station_mut(station_id) {

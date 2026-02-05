@@ -20,6 +20,12 @@ pub struct RackConfig {
     pub levels: u32,
     pub bins_per_level: u32,
     pub zone: Option<String>,
+    /// Base time to access level 0 (seconds). Default: 0.0
+    #[serde(default)]
+    pub base_access_time_s: Option<f64>,
+    /// Additional time per level above 0 (seconds). Default: 0.0
+    #[serde(default)]
+    pub per_level_time_s: Option<f64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

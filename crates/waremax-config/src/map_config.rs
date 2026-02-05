@@ -33,6 +33,10 @@ pub struct EdgeConfig {
     pub direction: Option<String>,
     #[serde(default = "default_capacity")]
     pub capacity: u32,
+    /// v2: Speed multiplier for routing cost (default: 1.0)
+    /// Values < 1.0 = express/faster lane, > 1.0 = slower/restricted
+    #[serde(default = "default_speed_multiplier")]
+    pub speed_multiplier: Option<f64>,
 }
 
 impl EdgeConfig {
@@ -56,6 +60,10 @@ fn default_true() -> bool {
 
 fn default_capacity() -> u32 {
     1
+}
+
+fn default_speed_multiplier() -> Option<f64> {
+    None // None means use default 1.0
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]

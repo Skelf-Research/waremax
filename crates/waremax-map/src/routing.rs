@@ -170,15 +170,22 @@ impl Router {
         self.dijkstra_avoiding(map, from, to, &avoid_set, traffic)
     }
 
-    /// Calculate edge cost with optional congestion penalty
-    fn edge_cost(&self, length: f64, edge_id: EdgeId, traffic: Option<&TrafficManager>) -> f64 {
+    /// Calculate edge cost with optional congestion penalty and speed multiplier
+    fn edge_cost(&self, map: &WarehouseMap, length: f64, edge_id: EdgeId, traffic: Option<&TrafficManager>) -> f64 {
+        // Apply speed multiplier (v2: fast lanes/express paths)
+        let speed_multiplier = map.get_edge(edge_id)
+            .map(|e| e.speed_multiplier)
+            .unwrap_or(1.0);
+        let base_cost = length * speed_multiplier;
+
+        // Apply congestion penalty if enabled
         if self.congestion_weight > 0.0 {
             if let Some(tm) = traffic {
                 let occupancy = tm.get_edge_occupancy(edge_id);
-                return length * (1.0 + self.congestion_weight * occupancy as f64);
+                return base_cost * (1.0 + self.congestion_weight * occupancy as f64);
             }
         }
-        length
+        base_cost
     }
 
     fn dijkstra(
@@ -239,7 +246,7 @@ impl Router {
             }
 
             for (neighbor, edge_id, length) in map.neighbors(node) {
-                let edge_cost = self.edge_cost(length, edge_id, traffic);
+                let edge_cost = self.edge_cost(map, length, edge_id, traffic);
                 let next_cost = cost + edge_cost;
 
                 if dist.get(&neighbor).map_or(true, |&d| next_cost < d) {
@@ -321,7 +328,7 @@ impl Router {
                     continue;
                 }
 
-                let edge_cost = self.edge_cost(length, edge_id, traffic);
+                let edge_cost = self.edge_cost(map, length, edge_id, traffic);
                 let next_cost = cost + edge_cost;
 
                 if dist.get(&neighbor).map_or(true, |&d| next_cost < d) {
@@ -403,7 +410,7 @@ impl Router {
             }
 
             for (neighbor, edge_id, length) in map.neighbors(node) {
-                let edge_cost = self.edge_cost(length, edge_id, traffic);
+                let edge_cost = self.edge_cost(map, length, edge_id, traffic);
                 let tentative_g = g_cost + edge_cost;
 
                 if g_score.get(&neighbor).map_or(true, |&g| tentative_g < g) {
