@@ -407,8 +407,9 @@ impl ControllableSimulation {
 
     /// Compute current metrics snapshot
     fn compute_metrics(&self) -> MetricsSnapshot {
-        let duration_s = (self.kernel.now() - self.warmup_time).as_seconds().max(1.0);
-        let hours = duration_s / 3600.0;
+        // Use time since warmup for throughput calculation
+        let post_warmup_s = (self.kernel.now() - self.warmup_time).as_seconds().max(1.0);
+        let hours = post_warmup_s / 3600.0;
 
         let throughput = if hours > 0.0 {
             self.orders_completed as f64 / hours
@@ -416,26 +417,29 @@ impl ControllableSimulation {
             0.0
         };
 
+        // For utilization, use FULL simulation time since robot/station stats accumulate from start
+        let total_sim_time = self.kernel.now().as_seconds().max(1.0);
+
         // Calculate robot utilization
-        let total_robot_time = duration_s * self.world.robots.len() as f64;
+        let total_robot_time = total_sim_time * self.world.robots.len() as f64;
         let total_active_time: f64 = self.world.robots.values()
             .map(|r| r.total_move_time.as_seconds() + r.total_service_time.as_seconds())
             .sum();
         let robot_utilization = if total_robot_time > 0.0 {
-            total_active_time / total_robot_time
+            (total_active_time / total_robot_time).min(1.0)  // Cap at 100%
         } else {
             0.0
         };
 
         // Calculate station utilization
         let total_station_capacity: f64 = self.world.stations.values()
-            .map(|s| s.concurrency as f64 * duration_s)
+            .map(|s| s.concurrency as f64 * total_sim_time)
             .sum();
         let total_station_busy: f64 = self.world.stations.values()
             .map(|s| s.total_service_time.as_seconds())
             .sum();
         let station_utilization = if total_station_capacity > 0.0 {
-            total_station_busy / total_station_capacity
+            (total_station_busy / total_station_capacity).min(1.0)  // Cap at 100%
         } else {
             0.0
         };
@@ -509,18 +513,81 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
 
     let mut world = World::new(seed);
 
-    // Build a simple grid map
-    let mut map = WarehouseMap::new();
-    let grid_size = 10;
+    // Determine grid size based on preset
+    let grid_rows = match scenario.stations.len() {
+        0..=2 => 5,   // small preset
+        3..=5 => 10,  // standard preset
+        _ => 15,      // large preset
+    };
+    let grid_cols = grid_rows;
+    let grid_size = grid_rows;
     let spacing = 3.0;
+
+    // Calculate station positions - distribute them around the perimeter
+    let num_stations = scenario.stations.len();
+    let mut station_nodes: std::collections::HashSet<u32> = std::collections::HashSet::new();
+
+    for i in 0..num_stations {
+        // Place stations along the edges of the grid, evenly spaced
+        let node_id = match i % 4 {
+            0 => {
+                // Top edge
+                let col = (i / 4 + 1) * grid_cols / (num_stations / 4 + 2);
+                col as u32
+            }
+            1 => {
+                // Right edge
+                let row = (i / 4 + 1) * grid_rows / (num_stations / 4 + 2);
+                (row * grid_cols + grid_cols - 1) as u32
+            }
+            2 => {
+                // Bottom edge
+                let col = (i / 4 + 1) * grid_cols / (num_stations / 4 + 2);
+                ((grid_rows - 1) * grid_cols + col) as u32
+            }
+            _ => {
+                // Left edge
+                let row = (i / 4 + 1) * grid_rows / (num_stations / 4 + 2);
+                (row * grid_cols) as u32
+            }
+        };
+        station_nodes.insert(node_id);
+    }
+
+    // Helper to determine if a position should be a rack (storage) node
+    // Creates a warehouse-like layout with alternating rack/aisle rows
+    fn is_rack_position(row: usize, col: usize, grid_size: usize) -> bool {
+        // Skip first/last rows (perimeter for stations/aisles)
+        if row == 0 || row == grid_size - 1 {
+            return false;
+        }
+        // Skip first/last cols (perimeter)
+        if col == 0 || col == grid_size - 1 {
+            return false;
+        }
+        // Every other row is a rack row (rows 2, 4, 6, etc.)
+        let is_rack_row = row % 2 == 0;
+        // Every 3rd column is a main aisle, others can be racks
+        let is_rack_col = col % 3 != 0;
+        is_rack_row && is_rack_col
+    }
+
+    // Build the grid map with proper warehouse layout
+    let mut map = WarehouseMap::new();
 
     for row in 0..grid_size {
         for col in 0..grid_size {
-            let id = row * grid_size + col;
+            let id = (row * grid_size + col) as u32;
             let x = col as f64 * spacing;
             let y = row as f64 * spacing;
-            let node_type = if id == 0 { NodeType::StationPick } else { NodeType::Aisle };
-            let node = Node::new(NodeId(id as u32), format!("N{}", id), x, y, node_type);
+            let node_type = if station_nodes.contains(&id) {
+                NodeType::StationPick
+            } else if is_rack_position(row, col, grid_size) {
+                NodeType::Rack  // Interior storage nodes
+            } else {
+                NodeType::Aisle
+            };
+            let node = Node::new(NodeId(id), format!("N{}", id), x, y, node_type);
             map.add_node(node);
         }
     }
@@ -549,9 +616,16 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
         scenario.traffic.edge_capacity_default,
     );
 
-    // Add robots
+    let total_nodes = (grid_size * grid_size) as u32;
+
+    // Add robots - distribute them across the grid
     for i in 0..scenario.robots.count {
-        let start_node = (i % (grid_size * grid_size) as u32) as u32;
+        // Spread robots across the grid, avoiding station nodes initially
+        let mut start_node = ((i * 7) % total_nodes) as u32; // Use prime multiplier for better spread
+        // Skip station nodes for initial placement
+        while station_nodes.contains(&start_node) {
+            start_node = (start_node + 1) % total_nodes;
+        }
         let robot = if scenario.robots.battery.enabled {
             Robot::with_battery(
                 RobotId(i),
@@ -578,7 +652,8 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
         world.robots.insert(RobotId(i), robot);
     }
 
-    // Add stations from config
+    // Add stations - use the distributed positions we calculated
+    let station_node_vec: Vec<u32> = station_nodes.iter().cloned().collect();
     for (idx, station_cfg) in scenario.stations.iter().enumerate() {
         let station_type = match station_cfg.station_type.as_str() {
             "pick" => StationType::Pick,
@@ -601,7 +676,13 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
             ),
         };
 
-        let node_id: u32 = station_cfg.node.parse().unwrap_or(0);
+        // Use our calculated distributed positions instead of config (which puts them adjacent)
+        let node_id = if idx < station_node_vec.len() {
+            station_node_vec[idx]
+        } else {
+            station_cfg.node.parse().unwrap_or(0)
+        };
+
         let station = Station::new(
             StationId(idx as u32),
             station_cfg.id.clone(),
@@ -628,7 +709,8 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
     world.time_series = TimeSeriesCollector::new(scenario.metrics.sample_interval_s);
 
     // Initialize demo inventory
-    world.init_demo_inventory(20);
+    // Initialize inventory with more SKUs to spread across rack nodes
+    world.init_demo_inventory(50);
 
     world
 }

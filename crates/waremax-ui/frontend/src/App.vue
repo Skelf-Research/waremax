@@ -57,8 +57,8 @@ onMounted(() => {
       </aside>
 
       <!-- Center: Canvas -->
-      <main class="flex-1 flex flex-col overflow-hidden">
-        <div class="flex-1 relative">
+      <main class="flex-1 flex flex-col overflow-hidden min-w-0">
+        <div class="flex-1 relative min-h-0">
           <WarehouseCanvas />
 
           <!-- Overlay when disconnected -->
@@ -74,8 +74,10 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Controls Bar -->
-        <ControlPanel />
+        <!-- Controls Bar - Always visible with fixed height -->
+        <div class="flex-shrink-0">
+          <ControlPanel />
+        </div>
       </main>
 
       <!-- Right Sidebar: Metrics + Events -->

@@ -17,10 +17,9 @@ function togglePlayPause() {
 </script>
 
 <template>
-  <div
-    v-if="store.isConnected"
-    class="flex items-center justify-between px-6 py-3 bg-warehouse-surface border-t border-warehouse-border"
-  >
+  <div class="flex items-center justify-between px-6 py-3 bg-warehouse-surface border-t border-warehouse-border h-14">
+    <!-- Show controls when connected -->
+    <template v-if="store.isConnected">
     <!-- Playback Controls -->
     <div class="flex items-center gap-2">
       <button
@@ -71,6 +70,12 @@ function togglePlayPause() {
       >
         + Robot
       </button>
+    </div>
+    </template>
+
+    <!-- Show placeholder when not connected -->
+    <div v-else class="flex-1 flex items-center justify-center text-gray-500 text-sm">
+      Create a simulation to see controls
     </div>
   </div>
 </template>
