@@ -181,23 +181,37 @@ impl ControllableSimulation {
         // Send initial state
         let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
 
-        let mut events_batch = 0u64;
-        let batch_size = 100; // Process events in batches for efficiency
+        // Track wall-clock time for proper pacing
+        let mut last_frame = Instant::now();
+        let frame_duration = Duration::from_millis(16); // ~60fps
+        let mut sim_time_anchor = self.kernel.now().as_seconds();
+        let mut wall_time_anchor = Instant::now();
 
         loop {
-            // Check for commands
-            match self.command_rx.try_recv() {
-                Ok(cmd) => {
-                    if !self.handle_command(cmd) {
-                        break;
+            // Check for commands (non-blocking)
+            loop {
+                match self.command_rx.try_recv() {
+                    Ok(cmd) => {
+                        if !self.handle_command(cmd) {
+                            return;
+                        }
+                        // Reset time anchors on resume
+                        if !self.paused {
+                            sim_time_anchor = self.kernel.now().as_seconds();
+                            wall_time_anchor = Instant::now();
+                        }
                     }
+                    Err(mpsc::error::TryRecvError::Empty) => break,
+                    Err(mpsc::error::TryRecvError::Disconnected) => return,
                 }
-                Err(mpsc::error::TryRecvError::Empty) => {}
-                Err(mpsc::error::TryRecvError::Disconnected) => break,
             }
 
             if self.paused {
-                // When paused, just yield and wait for commands
+                // When paused, send state updates less frequently
+                if self.last_update.elapsed() >= Duration::from_millis(500) {
+                    let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                    self.last_update = Instant::now();
+                }
                 tokio::time::sleep(Duration::from_millis(50)).await;
                 continue;
             }
@@ -205,16 +219,31 @@ impl ControllableSimulation {
             // Check if simulation is finished
             if !self.kernel.has_events() || self.kernel.now() >= self.end_time {
                 let final_metrics = self.compute_metrics();
+                let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
                 let _ = self.update_tx.send(SimUpdate::Finished(final_metrics));
                 break;
             }
 
-            // Process events based on speed
-            let wall_time_budget = Duration::from_millis(16); // ~60fps
-            let sim_time_budget = wall_time_budget.as_secs_f64() * self.speed;
-            let target_time = self.kernel.now() + SimTime::from_seconds(sim_time_budget);
+            // Calculate target simulation time based on wall-clock elapsed time
+            let wall_elapsed = wall_time_anchor.elapsed().as_secs_f64();
+            let target_sim_time = sim_time_anchor + (wall_elapsed * self.speed);
+            let target_time = SimTime::from_seconds(target_sim_time.min(self.end_time.as_seconds()));
 
-            while self.kernel.has_events() && self.kernel.now() < target_time && self.kernel.now() < self.end_time {
+            // Process events up to target time
+            let mut events_this_frame = 0u64;
+            let max_events_per_frame = 1000; // Prevent infinite loops
+
+            while self.kernel.has_events()
+                && self.kernel.now() <= target_time
+                && events_this_frame < max_events_per_frame
+            {
+                // Peek at next event time
+                if let Some(next_event) = self.kernel.peek_next() {
+                    if next_event.time > target_time {
+                        break; // Next event is in the future
+                    }
+                }
+
                 if let Some(event) = self.kernel.pop_next() {
                     // Record metrics after warmup
                     if self.kernel.now() >= self.warmup_time {
@@ -228,27 +257,22 @@ impl ControllableSimulation {
                     self.handler.handle(&mut self.kernel, &mut self.world, &event, &mut self.metrics);
 
                     self.events_processed += 1;
-                    events_batch += 1;
-
-                    // Send batch updates
-                    if events_batch >= batch_size {
-                        let _ = self.update_tx.send(SimUpdate::Tick {
-                            time_s: self.kernel.now().as_seconds(),
-                            events_processed: self.events_processed,
-                        });
-                        events_batch = 0;
-                    }
+                    events_this_frame += 1;
                 }
             }
 
-            // Send periodic state updates
+            // Send state updates at frame rate
             if self.last_update.elapsed() >= self.update_interval {
                 let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
                 self.last_update = Instant::now();
             }
 
-            // Yield to allow other tasks
-            tokio::task::yield_now().await;
+            // Wait for next frame (actual wall-clock pacing)
+            let frame_elapsed = last_frame.elapsed();
+            if frame_elapsed < frame_duration {
+                tokio::time::sleep(frame_duration - frame_elapsed).await;
+            }
+            last_frame = Instant::now();
         }
     }
 
