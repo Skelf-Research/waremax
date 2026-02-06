@@ -733,7 +733,7 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
     for i in 0..scenario.robots.count {
         // Spread robots across the grid, avoiding station nodes initially
         let mut start_node = (i * 7) % total_nodes; // Use prime multiplier for better spread
-                                                             // Skip station nodes for initial placement
+                                                    // Skip station nodes for initial placement
         while station_nodes.contains(&start_node) {
             start_node = (start_node + 1) % total_nodes;
         }

@@ -27,7 +27,15 @@ pub enum EdgeDirection {
 
 /// Node type in the warehouse map
 #[derive(
-    Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq, Default,
+    Archive,
+    Deserialize,
+    Serialize,
+    SerdeDeserialize,
+    SerdeSerialize,
+    Clone,
+    Debug,
+    PartialEq,
+    Default,
 )]
 pub enum NodeType {
     #[default]

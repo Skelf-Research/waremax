@@ -212,7 +212,10 @@ impl Router {
 
         impl Ord for State {
             fn cmp(&self, other: &Self) -> Ordering {
-                other.cost.partial_cmp(&self.cost).unwrap_or(Ordering::Equal)
+                other
+                    .cost
+                    .partial_cmp(&self.cost)
+                    .unwrap_or(Ordering::Equal)
             }
         }
 
@@ -292,7 +295,10 @@ impl Router {
 
         impl Ord for State {
             fn cmp(&self, other: &Self) -> Ordering {
-                other.cost.partial_cmp(&self.cost).unwrap_or(Ordering::Equal)
+                other
+                    .cost
+                    .partial_cmp(&self.cost)
+                    .unwrap_or(Ordering::Equal)
             }
         }
 
@@ -377,7 +383,10 @@ impl Router {
 
         impl Ord for State {
             fn cmp(&self, other: &Self) -> Ordering {
-                other.f_cost.partial_cmp(&self.f_cost).unwrap_or(Ordering::Equal)
+                other
+                    .f_cost
+                    .partial_cmp(&self.f_cost)
+                    .unwrap_or(Ordering::Equal)
             }
         }
 

@@ -34,13 +34,17 @@ impl BinLocation {
 pub enum TaskStatus {
     #[default]
     Pending,
-    Assigned { robot: RobotId },
+    Assigned {
+        robot: RobotId,
+    },
     MovingToPickup,
     PickingUp,
     MovingToStation,
     AtStation,
     Completed,
-    Failed { reason: String },
+    Failed {
+        reason: String,
+    },
 }
 
 /// A task to be executed by a robot

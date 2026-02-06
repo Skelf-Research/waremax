@@ -1100,7 +1100,12 @@ fn run_generate(
     println!("  Duration: {:.1} min", config.simulation.duration_minutes);
 }
 
-fn run_sweep(base: &std::path::Path, sweep_spec: &str, replications: u32, output_dir: &std::path::Path) {
+fn run_sweep(
+    base: &std::path::Path,
+    sweep_spec: &str,
+    replications: u32,
+    output_dir: &std::path::Path,
+) {
     use waremax_testing::{BatchRunner, ScenarioComparator, SweepGenerator};
 
     println!("Running parameter sweep...");
