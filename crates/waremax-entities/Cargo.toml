@@ -2,6 +2,8 @@
 name = "waremax-entities"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "Entity types for Waremax simulation (robots, stations, orders, tasks)"
 
 [dependencies]

@@ -2,6 +2,8 @@
 name = "waremax-config"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "Configuration loading and validation for Waremax"
 
 [dependencies]

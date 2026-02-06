@@ -149,7 +149,7 @@ log_info "Verifying crate metadata..."
 
 verify_crate_metadata() {
     local crate_name=$1
-    local crate_path="crates/${crate_name#waremax-}"
+    local crate_path="crates/${crate_name}"
     local cargo_toml="$crate_path/Cargo.toml"
 
     if [ ! -f "$cargo_toml" ]; then
@@ -188,7 +188,7 @@ log_success "Build completed successfully"
 
 publish_crate() {
     local crate_name=$1
-    local crate_path="crates/${crate_name#waremax-}"
+    local crate_path="crates/${crate_name}"
     local attempt=1
     local max_attempts=3
 
