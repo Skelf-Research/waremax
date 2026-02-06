@@ -54,7 +54,7 @@ impl Kernel {
             self.current_time
         );
 
-        let id = self.event_id_gen.next();
+        let id = self.event_id_gen.next_id();
         self.event_queue.push(ScheduledEvent::new(id, time, event));
         id
     }

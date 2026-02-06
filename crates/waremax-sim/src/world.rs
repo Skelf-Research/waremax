@@ -199,7 +199,7 @@ impl World {
 
     /// Generate the next charging station ID
     pub fn next_charging_id(&mut self) -> ChargingStationId {
-        self.charging_id_gen.next()
+        self.charging_id_gen.next_id()
     }
 
     // === v3: Maintenance station helpers ===
@@ -244,7 +244,7 @@ impl World {
 
     /// Generate the next maintenance station ID
     pub fn next_maintenance_id(&mut self) -> MaintenanceStationId {
-        self.maintenance_id_gen.next()
+        self.maintenance_id_gen.next_id()
     }
 
     /// Create a PolicyContext from current world state for policy decisions
@@ -260,11 +260,11 @@ impl World {
     }
 
     pub fn next_order_id(&mut self) -> OrderId {
-        self.order_id_gen.next()
+        self.order_id_gen.next_id()
     }
 
     pub fn next_task_id(&mut self) -> TaskId {
-        self.task_id_gen.next()
+        self.task_id_gen.next_id()
     }
 
     pub fn get_robot(&self, id: RobotId) -> Option<&Robot> {

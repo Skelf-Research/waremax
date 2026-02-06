@@ -122,7 +122,7 @@ macro_rules! impl_id_generator {
     ($id_type:ident) => {
         impl IdGenerator<$id_type> {
             /// Generate the next ID
-            pub fn next(&mut self) -> $id_type {
+            pub fn next_id(&mut self) -> $id_type {
                 let id = $id_type(self.next);
                 self.next += 1;
                 id
@@ -152,9 +152,9 @@ mod tests {
     #[test]
     fn test_id_generation() {
         let mut gen = IdGenerator::<RobotId>::new();
-        assert_eq!(gen.next(), RobotId(0));
-        assert_eq!(gen.next(), RobotId(1));
-        assert_eq!(gen.next(), RobotId(2));
+        assert_eq!(gen.next_id(), RobotId(0));
+        assert_eq!(gen.next_id(), RobotId(1));
+        assert_eq!(gen.next_id(), RobotId(2));
     }
 
     #[test]
