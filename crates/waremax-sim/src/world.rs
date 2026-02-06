@@ -1,18 +1,20 @@
 //! World state container
 
-use waremax_core::{RobotId, NodeId, StationId, OrderId, TaskId, SkuId, RackId, ChargingStationId, MaintenanceStationId, SimRng, SimTime, IdGenerator};
-use waremax_map::{WarehouseMap, Router, TrafficManager, NodeType, ReservationManager};
-use waremax_storage::{Inventory, SkuCatalog, Rack, Sku, BinAddress};
-use waremax_entities::{Robot, Station, Order, Task, ChargingStation, MaintenanceStation};
-use waremax_policies::{
-    TaskAllocationPolicy, StationAssignmentPolicy, BatchingPolicy, PriorityPolicy,
-    TrafficPolicy, WaitAtNodePolicy,
-    PolicyContext, NearestRobotPolicy, LeastQueuePolicy, NoBatchingPolicy, StrictPriorityPolicy,
-    DeadlockResolver, YoungestRobotBacksUp,
-};
-use waremax_metrics::{TimeSeriesCollector, EventTraceCollector};
-use waremax_analysis::AttributionCollector;
 use std::collections::HashMap;
+use waremax_analysis::AttributionCollector;
+use waremax_core::{
+    ChargingStationId, IdGenerator, MaintenanceStationId, NodeId, OrderId, RackId, RobotId, SimRng,
+    SimTime, SkuId, StationId, TaskId,
+};
+use waremax_entities::{ChargingStation, MaintenanceStation, Order, Robot, Station, Task};
+use waremax_map::{NodeType, ReservationManager, Router, TrafficManager, WarehouseMap};
+use waremax_metrics::{EventTraceCollector, TimeSeriesCollector};
+use waremax_policies::{
+    BatchingPolicy, DeadlockResolver, LeastQueuePolicy, NearestRobotPolicy, NoBatchingPolicy,
+    PolicyContext, PriorityPolicy, StationAssignmentPolicy, StrictPriorityPolicy,
+    TaskAllocationPolicy, TrafficPolicy, WaitAtNodePolicy, YoungestRobotBacksUp,
+};
+use waremax_storage::{BinAddress, Inventory, Rack, Sku, SkuCatalog};
 
 use crate::distributions::DistributionSet;
 
@@ -163,12 +165,18 @@ impl World {
     }
 
     /// Get a mutable charging station by ID
-    pub fn get_charging_station_mut(&mut self, id: ChargingStationId) -> Option<&mut ChargingStation> {
+    pub fn get_charging_station_mut(
+        &mut self,
+        id: ChargingStationId,
+    ) -> Option<&mut ChargingStation> {
         self.charging_stations.get_mut(&id)
     }
 
     /// Find the nearest charging station with available capacity
-    pub fn find_nearest_charging_station(&mut self, from_node: NodeId) -> Option<ChargingStationId> {
+    pub fn find_nearest_charging_station(
+        &mut self,
+        from_node: NodeId,
+    ) -> Option<ChargingStationId> {
         let mut best: Option<(ChargingStationId, f64)> = None;
 
         for (id, station) in &self.charging_stations {
@@ -202,12 +210,18 @@ impl World {
     }
 
     /// Get a mutable maintenance station by ID
-    pub fn get_maintenance_station_mut(&mut self, id: MaintenanceStationId) -> Option<&mut MaintenanceStation> {
+    pub fn get_maintenance_station_mut(
+        &mut self,
+        id: MaintenanceStationId,
+    ) -> Option<&mut MaintenanceStation> {
         self.maintenance_stations.get_mut(&id)
     }
 
     /// Find the nearest maintenance station with available capacity
-    pub fn find_nearest_maintenance_station(&mut self, from_node: NodeId) -> Option<MaintenanceStationId> {
+    pub fn find_nearest_maintenance_station(
+        &mut self,
+        from_node: NodeId,
+    ) -> Option<MaintenanceStationId> {
         let mut best: Option<(MaintenanceStationId, f64)> = None;
 
         for (id, station) in &self.maintenance_stations {
@@ -290,7 +304,9 @@ impl World {
     }
 
     pub fn pick_stations(&self) -> impl Iterator<Item = &Station> {
-        self.stations.values().filter(|s| s.station_type == waremax_entities::StationType::Pick)
+        self.stations
+            .values()
+            .filter(|s| s.station_type == waremax_entities::StationType::Pick)
     }
 
     /// Initialize demo inventory with SKUs and stock placements
@@ -303,14 +319,19 @@ impl World {
         }
 
         // Find rack/storage nodes in the map and create racks
-        let rack_nodes: Vec<(NodeId, String)> = self.map.nodes.iter()
+        let rack_nodes: Vec<(NodeId, String)> = self
+            .map
+            .nodes
+            .iter()
             .filter(|(_, node)| matches!(node.node_type, NodeType::Rack | NodeType::Staging))
             .map(|(id, node)| (*id, node.string_id.clone()))
             .collect();
 
         // If no rack nodes found, use interior aisle nodes as storage
         let storage_nodes: Vec<(NodeId, String)> = if rack_nodes.is_empty() {
-            self.map.nodes.iter()
+            self.map
+                .nodes
+                .iter()
                 .filter(|(_, node)| matches!(node.node_type, NodeType::Aisle))
                 .take(10) // Use up to 10 aisle nodes as storage
                 .map(|(id, node)| (*id, node.string_id.clone()))
@@ -326,8 +347,8 @@ impl World {
                 rack_id,
                 format!("RACK-{}", node_string_id),
                 *node_id,
-                3,  // 3 levels
-                4,  // 4 bins per level
+                3, // 3 levels
+                4, // 4 bins per level
             );
             self.racks.insert(rack_id, rack);
 
@@ -338,7 +359,8 @@ impl World {
                     let sku_idx = ((idx * 12) + (level * 4) + bin) as u32 % num_skus;
                     let bin_addr = BinAddress::new(rack_id, level as u32, bin as u32);
                     let quantity = 10 + self.rng.gen_range(1..=20u32); // 10-30 units
-                    self.inventory.add_placement(bin_addr, SkuId(sku_idx), quantity);
+                    self.inventory
+                        .add_placement(bin_addr, SkuId(sku_idx), quantity);
                 }
             }
         }

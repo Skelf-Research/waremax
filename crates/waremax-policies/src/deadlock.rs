@@ -2,7 +2,7 @@
 //!
 //! Provides strategies for resolving deadlocks when detected in the wait-for graph.
 
-use waremax_core::{RobotId, NodeId, SimTime};
+use waremax_core::{NodeId, RobotId, SimTime};
 
 /// Result of a deadlock resolution decision
 #[derive(Clone, Debug)]
@@ -114,7 +114,9 @@ impl YoungestRobotBacksUp {
 
 impl DeadlockResolver for YoungestRobotBacksUp {
     fn resolve(&self, ctx: &DeadlockContext) -> DeadlockResolution {
-        let robot = ctx.youngest_robot().expect("deadlock cycle cannot be empty");
+        let robot = ctx
+            .youngest_robot()
+            .expect("deadlock cycle cannot be empty");
 
         // Try to find a previous node to back up to
         if let Some(prev_node) = ctx.get_previous_node(robot) {
@@ -214,7 +216,9 @@ impl TieredResolver {
 impl DeadlockResolver for TieredResolver {
     fn resolve(&self, ctx: &DeadlockContext) -> DeadlockResolution {
         // First, try to back up the youngest robot
-        let youngest = ctx.youngest_robot().expect("deadlock cycle cannot be empty");
+        let youngest = ctx
+            .youngest_robot()
+            .expect("deadlock cycle cannot be empty");
 
         if let Some(prev_node) = ctx.get_previous_node(youngest) {
             return DeadlockResolution::BackUp {
@@ -300,7 +304,7 @@ mod tests {
         let resolver = LowestPriorityAborts::new();
 
         let ctx = DeadlockContext::new(vec![RobotId(1), RobotId(2), RobotId(3)])
-            .with_priority(RobotId(1), 1)  // High priority
+            .with_priority(RobotId(1), 1) // High priority
             .with_priority(RobotId(2), 10) // Low priority
             .with_priority(RobotId(3), 5); // Medium priority
 
@@ -358,10 +362,22 @@ mod tests {
 
     #[test]
     fn test_create_resolver() {
-        assert_eq!(create_deadlock_resolver("youngest_backs_up").name(), "youngest_backs_up");
-        assert_eq!(create_deadlock_resolver("lowest_priority_aborts").name(), "lowest_priority_aborts");
-        assert_eq!(create_deadlock_resolver("wait_and_retry").name(), "wait_and_retry");
+        assert_eq!(
+            create_deadlock_resolver("youngest_backs_up").name(),
+            "youngest_backs_up"
+        );
+        assert_eq!(
+            create_deadlock_resolver("lowest_priority_aborts").name(),
+            "lowest_priority_aborts"
+        );
+        assert_eq!(
+            create_deadlock_resolver("wait_and_retry").name(),
+            "wait_and_retry"
+        );
         assert_eq!(create_deadlock_resolver("tiered").name(), "tiered");
-        assert_eq!(create_deadlock_resolver("unknown").name(), "youngest_backs_up"); // Default
+        assert_eq!(
+            create_deadlock_resolver("unknown").name(),
+            "youngest_backs_up"
+        ); // Default
     }
 }

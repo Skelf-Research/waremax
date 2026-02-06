@@ -3,7 +3,7 @@
 //! Identifies congested nodes/edges, overloaded stations, and underutilized robots.
 
 use serde::{Deserialize, Serialize};
-use waremax_core::{NodeId, EdgeId, StationId, RobotId, ChargingStationId};
+use waremax_core::{ChargingStationId, EdgeId, NodeId, RobotId, StationId};
 
 /// Types of bottlenecks that can be detected
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -62,25 +62,48 @@ impl BottleneckType {
         match self {
             BottleneckType::CongestedNode { score, .. } => (score / 100.0).min(100.0),
             BottleneckType::CongestedEdge { score, .. } => (score / 100.0).min(100.0),
-            BottleneckType::OverloadedStation { utilization, avg_queue, .. } => {
-                let util_factor = if *utilization > 0.95 { 50.0 } else { utilization * 40.0 };
+            BottleneckType::OverloadedStation {
+                utilization,
+                avg_queue,
+                ..
+            } => {
+                let util_factor = if *utilization > 0.95 {
+                    50.0
+                } else {
+                    utilization * 40.0
+                };
                 let queue_factor = (*avg_queue * 5.0).min(50.0);
                 util_factor + queue_factor
             }
             BottleneckType::UnderutilizedStation { utilization, .. } => {
                 ((1.0 - utilization) * 50.0).min(50.0)
             }
-            BottleneckType::ChargingContention { avg_queue, utilization, .. } => {
-                let util_factor = if *utilization > 0.9 { 40.0 } else { utilization * 30.0 };
+            BottleneckType::ChargingContention {
+                avg_queue,
+                utilization,
+                ..
+            } => {
+                let util_factor = if *utilization > 0.9 {
+                    40.0
+                } else {
+                    utilization * 30.0
+                };
                 let queue_factor = (*avg_queue * 10.0).min(60.0);
                 util_factor + queue_factor
             }
-            BottleneckType::UnderutilizedRobots { avg_utilization, robot_ids } => {
+            BottleneckType::UnderutilizedRobots {
+                avg_utilization,
+                robot_ids,
+            } => {
                 let count_factor = (robot_ids.len() as f64 * 5.0).min(30.0);
                 let util_factor = (1.0 - avg_utilization) * 40.0;
                 count_factor + util_factor
             }
-            BottleneckType::InsufficientRobots { avg_utilization, estimated_shortfall, .. } => {
+            BottleneckType::InsufficientRobots {
+                avg_utilization,
+                estimated_shortfall,
+                ..
+            } => {
                 let util_factor = if *avg_utilization > 0.95 { 50.0 } else { 0.0 };
                 let shortfall_factor = (*estimated_shortfall as f64 * 10.0).min(50.0);
                 util_factor + shortfall_factor
@@ -105,29 +128,57 @@ impl BottleneckType {
     pub fn recommendation(&self) -> String {
         match self {
             BottleneckType::CongestedNode { node_id, .. } => {
-                format!("Consider adding alternate routes around node {} or increasing its capacity", node_id)
+                format!(
+                    "Consider adding alternate routes around node {} or increasing its capacity",
+                    node_id
+                )
             }
             BottleneckType::CongestedEdge { edge_id, .. } => {
-                format!("Consider widening edge {} or implementing one-way traffic", edge_id)
+                format!(
+                    "Consider widening edge {} or implementing one-way traffic",
+                    edge_id
+                )
             }
-            BottleneckType::OverloadedStation { station_name, utilization, .. } => {
+            BottleneckType::OverloadedStation {
+                station_name,
+                utilization,
+                ..
+            } => {
                 if *utilization > 0.95 {
-                    format!("Station {} is at capacity. Add parallel capacity or reduce service time", station_name)
+                    format!(
+                        "Station {} is at capacity. Add parallel capacity or reduce service time",
+                        station_name
+                    )
                 } else {
-                    format!("Reduce queue buildup at {} by load balancing or adding concurrency", station_name)
+                    format!(
+                        "Reduce queue buildup at {} by load balancing or adding concurrency",
+                        station_name
+                    )
                 }
             }
             BottleneckType::UnderutilizedStation { station_name, .. } => {
-                format!("Station {} has low utilization. Consider relocating or removing", station_name)
+                format!(
+                    "Station {} has low utilization. Consider relocating or removing",
+                    station_name
+                )
             }
             BottleneckType::ChargingContention { station_name, .. } => {
-                format!("Charging station {} has contention. Add more bays or additional stations", station_name)
+                format!(
+                    "Charging station {} has contention. Add more bays or additional stations",
+                    station_name
+                )
             }
             BottleneckType::UnderutilizedRobots { robot_ids, .. } => {
                 format!("{} robots are underutilized. Consider reducing fleet size or rebalancing workload", robot_ids.len())
             }
-            BottleneckType::InsufficientRobots { estimated_shortfall, .. } => {
-                format!("Fleet appears undersized. Consider adding {} robots", estimated_shortfall)
+            BottleneckType::InsufficientRobots {
+                estimated_shortfall,
+                ..
+            } => {
+                format!(
+                    "Fleet appears undersized. Consider adding {} robots",
+                    estimated_shortfall
+                )
             }
         }
     }
@@ -135,43 +186,87 @@ impl BottleneckType {
     /// Format as a detailed string
     pub fn to_detail_string(&self) -> String {
         match self {
-            BottleneckType::CongestedNode { node_id, score, wait_events, total_wait_s } => {
+            BottleneckType::CongestedNode {
+                node_id,
+                score,
+                wait_events,
+                total_wait_s,
+            } => {
                 format!(
                     "Node {}: Score {:.1}, {} wait events, {:.1}s total wait",
                     node_id, score, wait_events, total_wait_s
                 )
             }
-            BottleneckType::CongestedEdge { edge_id, score, wait_events, total_wait_s } => {
+            BottleneckType::CongestedEdge {
+                edge_id,
+                score,
+                wait_events,
+                total_wait_s,
+            } => {
                 format!(
                     "Edge {}: Score {:.1}, {} wait events, {:.1}s total wait",
                     edge_id, score, wait_events, total_wait_s
                 )
             }
-            BottleneckType::OverloadedStation { station_name, utilization, avg_queue, max_queue, .. } => {
+            BottleneckType::OverloadedStation {
+                station_name,
+                utilization,
+                avg_queue,
+                max_queue,
+                ..
+            } => {
                 format!(
                     "{}: {:.1}% utilization, avg queue {:.1}, max queue {}",
-                    station_name, utilization * 100.0, avg_queue, max_queue
+                    station_name,
+                    utilization * 100.0,
+                    avg_queue,
+                    max_queue
                 )
             }
-            BottleneckType::UnderutilizedStation { station_name, utilization, .. } => {
-                format!("{}: Only {:.1}% utilization", station_name, utilization * 100.0)
+            BottleneckType::UnderutilizedStation {
+                station_name,
+                utilization,
+                ..
+            } => {
+                format!(
+                    "{}: Only {:.1}% utilization",
+                    station_name,
+                    utilization * 100.0
+                )
             }
-            BottleneckType::ChargingContention { station_name, avg_queue, utilization, .. } => {
+            BottleneckType::ChargingContention {
+                station_name,
+                avg_queue,
+                utilization,
+                ..
+            } => {
                 format!(
                     "{}: {:.1}% utilization, avg queue {:.1}",
-                    station_name, utilization * 100.0, avg_queue
+                    station_name,
+                    utilization * 100.0,
+                    avg_queue
                 )
             }
-            BottleneckType::UnderutilizedRobots { robot_ids, avg_utilization } => {
+            BottleneckType::UnderutilizedRobots {
+                robot_ids,
+                avg_utilization,
+            } => {
                 format!(
                     "{} robots at {:.1}% avg utilization",
-                    robot_ids.len(), avg_utilization * 100.0
+                    robot_ids.len(),
+                    avg_utilization * 100.0
                 )
             }
-            BottleneckType::InsufficientRobots { robot_count, avg_utilization, estimated_shortfall } => {
+            BottleneckType::InsufficientRobots {
+                robot_count,
+                avg_utilization,
+                estimated_shortfall,
+            } => {
                 format!(
                     "{} robots at {:.1}% utilization, need ~{} more",
-                    robot_count, avg_utilization * 100.0, estimated_shortfall
+                    robot_count,
+                    avg_utilization * 100.0,
+                    estimated_shortfall
                 )
             }
         }
@@ -268,8 +363,14 @@ impl BottleneckAnalysis {
         output.push_str(&"=".repeat(50));
         output.push('\n');
 
-        output.push_str(&format!("Total Bottlenecks: {}\n", self.summary.total_count));
-        output.push_str(&format!("  Congestion: {}\n", self.summary.congestion_count));
+        output.push_str(&format!(
+            "Total Bottlenecks: {}\n",
+            self.summary.total_count
+        ));
+        output.push_str(&format!(
+            "  Congestion: {}\n",
+            self.summary.congestion_count
+        ));
         output.push_str(&format!("  Station: {}\n", self.summary.station_count));
         output.push_str(&format!("  Robot: {}\n", self.summary.robot_count));
 
@@ -277,8 +378,14 @@ impl BottleneckAnalysis {
             output.push_str(&format!("\nPrimary Issue: {}\n", primary));
         }
 
-        output.push_str(&format!("Avg Severity: {:.1}/100\n", self.summary.avg_severity));
-        output.push_str(&format!("Max Severity: {:.1}/100\n", self.summary.max_severity));
+        output.push_str(&format!(
+            "Avg Severity: {:.1}/100\n",
+            self.summary.avg_severity
+        ));
+        output.push_str(&format!(
+            "Max Severity: {:.1}/100\n",
+            self.summary.max_severity
+        ));
 
         if !self.bottlenecks.is_empty() {
             output.push_str(&"\n".to_string());
@@ -293,7 +400,10 @@ impl BottleneckAnalysis {
                     bottleneck.to_detail_string(),
                     bottleneck.severity()
                 ));
-                output.push_str(&format!("   Recommendation: {}\n", bottleneck.recommendation()));
+                output.push_str(&format!(
+                    "   Recommendation: {}\n",
+                    bottleneck.recommendation()
+                ));
             }
         }
 
@@ -302,7 +412,10 @@ impl BottleneckAnalysis {
 
     /// Get recommendations for all bottlenecks
     pub fn recommendations(&self) -> Vec<String> {
-        self.bottlenecks.iter().map(|b| b.recommendation()).collect()
+        self.bottlenecks
+            .iter()
+            .map(|b| b.recommendation())
+            .collect()
     }
 
     /// Get top N bottlenecks by severity
@@ -351,7 +464,9 @@ impl BottleneckDetector {
 
         // Sort by severity
         bottlenecks.sort_by(|a, b| {
-            b.severity().partial_cmp(&a.severity()).unwrap_or(std::cmp::Ordering::Equal)
+            b.severity()
+                .partial_cmp(&a.severity())
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         // Generate summary
@@ -376,7 +491,9 @@ impl BottleneckDetector {
 
         congested.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
-        for (node_id, score, wait_events, total_wait_s) in congested.into_iter().take(self.config.max_per_category) {
+        for (node_id, score, wait_events, total_wait_s) in
+            congested.into_iter().take(self.config.max_per_category)
+        {
             bottlenecks.push(BottleneckType::CongestedNode {
                 node_id,
                 score,
@@ -399,7 +516,9 @@ impl BottleneckDetector {
 
         congested.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
-        for (edge_id, score, wait_events, total_wait_s) in congested.into_iter().take(self.config.max_per_category) {
+        for (edge_id, score, wait_events, total_wait_s) in
+            congested.into_iter().take(self.config.max_per_category)
+        {
             bottlenecks.push(BottleneckType::CongestedEdge {
                 edge_id,
                 score,
@@ -492,8 +611,8 @@ impl BottleneckDetector {
             // Estimate how many more robots might be needed
             // If at 95% utilization, need ~5% more capacity
             let capacity_ratio = avg_utilization / 0.75; // Target 75% utilization
-            let estimated_shortfall = ((robots.len() as f64 * capacity_ratio) - robots.len() as f64)
-                .ceil() as usize;
+            let estimated_shortfall =
+                ((robots.len() as f64 * capacity_ratio) - robots.len() as f64).ceil() as usize;
 
             if estimated_shortfall > 0 {
                 bottlenecks.push(BottleneckType::InsufficientRobots {
@@ -510,7 +629,12 @@ impl BottleneckDetector {
 
         let congestion_count = bottlenecks
             .iter()
-            .filter(|b| matches!(b, BottleneckType::CongestedNode { .. } | BottleneckType::CongestedEdge { .. }))
+            .filter(|b| {
+                matches!(
+                    b,
+                    BottleneckType::CongestedNode { .. } | BottleneckType::CongestedEdge { .. }
+                )
+            })
             .count();
 
         let station_count = bottlenecks
@@ -530,7 +654,8 @@ impl BottleneckDetector {
             .filter(|b| {
                 matches!(
                     b,
-                    BottleneckType::UnderutilizedRobots { .. } | BottleneckType::InsufficientRobots { .. }
+                    BottleneckType::UnderutilizedRobots { .. }
+                        | BottleneckType::InsufficientRobots { .. }
                 )
             })
             .count();
@@ -543,9 +668,9 @@ impl BottleneckDetector {
         };
         let max_severity = severities.iter().cloned().fold(0.0, f64::max);
 
-        let primary_bottleneck = bottlenecks.first().map(|b| {
-            format!("{}: {}", b.name(), b.to_detail_string())
-        });
+        let primary_bottleneck = bottlenecks
+            .first()
+            .map(|b| format!("{}: {}", b.name(), b.to_detail_string()));
 
         BottleneckSummary {
             total_count,
@@ -596,7 +721,7 @@ mod tests {
         let input = BottleneckInputData {
             node_congestion: vec![
                 (NodeId(1), 100.0, 10, 20.0),
-                (NodeId(2), 30.0, 3, 6.0),  // Below threshold
+                (NodeId(2), 30.0, 3, 6.0), // Below threshold
                 (NodeId(3), 200.0, 20, 40.0),
             ],
             ..Default::default()
@@ -619,9 +744,9 @@ mod tests {
 
         let input = BottleneckInputData {
             station_data: vec![
-                (StationId(1), "S1".to_string(), 0.95, 3.0, 8),  // Overloaded
-                (StationId(2), "S2".to_string(), 0.50, 0.5, 2),  // OK
-                (StationId(3), "S3".to_string(), 0.20, 0.1, 1),  // Underutilized
+                (StationId(1), "S1".to_string(), 0.95, 3.0, 8), // Overloaded
+                (StationId(2), "S2".to_string(), 0.50, 0.5, 2), // OK
+                (StationId(3), "S3".to_string(), 0.20, 0.1, 1), // Underutilized
             ],
             ..Default::default()
         };
@@ -647,11 +772,7 @@ mod tests {
         let detector = BottleneckDetector::new();
 
         let input = BottleneckInputData {
-            robot_utilizations: vec![
-                (RobotId(0), 0.95),
-                (RobotId(1), 0.92),
-                (RobotId(2), 0.94),
-            ],
+            robot_utilizations: vec![(RobotId(0), 0.95), (RobotId(1), 0.92), (RobotId(2), 0.94)],
             ..Default::default()
         };
 

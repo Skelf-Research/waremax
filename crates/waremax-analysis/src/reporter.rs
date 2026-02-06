@@ -2,10 +2,10 @@
 //!
 //! Generates RCA reports in different formats (text, JSON).
 
+use serde::{Deserialize, Serialize};
+use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use std::fs::File;
-use serde::{Deserialize, Serialize};
 
 use crate::analyzer::RootCauseAnalysisReport;
 
@@ -99,7 +99,11 @@ impl RCAReporter {
     }
 
     /// Write report to file
-    pub fn write_to_file(&self, report: &RootCauseAnalysisReport, path: &Path) -> std::io::Result<()> {
+    pub fn write_to_file(
+        &self,
+        report: &RootCauseAnalysisReport,
+        path: &Path,
+    ) -> std::io::Result<()> {
         let content = self.generate(report);
         let mut file = File::create(path)?;
         file.write_all(content.as_bytes())?;
@@ -107,7 +111,11 @@ impl RCAReporter {
     }
 
     /// Write report to writer
-    pub fn write_to<W: Write>(&self, report: &RootCauseAnalysisReport, writer: &mut W) -> std::io::Result<()> {
+    pub fn write_to<W: Write>(
+        &self,
+        report: &RootCauseAnalysisReport,
+        writer: &mut W,
+    ) -> std::io::Result<()> {
         let content = self.generate(report);
         writer.write_all(content.as_bytes())?;
         Ok(())
@@ -175,7 +183,10 @@ impl RCAReporter {
         s.push_str(&"-".repeat(70));
         s.push_str("\n\n");
 
-        s.push_str(&format!("  Health Score:         {:.0}/100", summary.health_score));
+        s.push_str(&format!(
+            "  Health Score:         {:.0}/100",
+            summary.health_score
+        ));
         if summary.health_score >= 80.0 {
             s.push_str(" (Good)\n");
         } else if summary.health_score >= 60.0 {
@@ -184,18 +195,36 @@ impl RCAReporter {
             s.push_str(" (Poor)\n");
         }
 
-        s.push_str(&format!("  Orders Analyzed:      {}\n", summary.orders_analyzed));
-        s.push_str(&format!("  Avg Cycle Time:       {:.1}s\n", summary.avg_cycle_time_s));
-        s.push_str(&format!("  Primary Delay Source: {}\n", summary.primary_delay_source));
+        s.push_str(&format!(
+            "  Orders Analyzed:      {}\n",
+            summary.orders_analyzed
+        ));
+        s.push_str(&format!(
+            "  Avg Cycle Time:       {:.1}s\n",
+            summary.avg_cycle_time_s
+        ));
+        s.push_str(&format!(
+            "  Primary Delay Source: {}\n",
+            summary.primary_delay_source
+        ));
 
         if let Some(ref bottleneck) = summary.primary_bottleneck {
             s.push_str(&format!("  Primary Bottleneck:   {}\n", bottleneck));
         }
 
-        s.push_str(&format!("  Anomalies Detected:   {}\n", summary.anomaly_count));
-        s.push_str(&format!("  Slow Orders:          {}\n", summary.slow_order_count));
+        s.push_str(&format!(
+            "  Anomalies Detected:   {}\n",
+            summary.anomaly_count
+        ));
+        s.push_str(&format!(
+            "  Slow Orders:          {}\n",
+            summary.slow_order_count
+        ));
 
-        s.push_str(&format!("\n  Key Finding:\n    {}\n\n", summary.key_finding));
+        s.push_str(&format!(
+            "\n  Key Finding:\n    {}\n\n",
+            summary.key_finding
+        ));
 
         s
     }
@@ -207,10 +236,15 @@ impl RCAReporter {
         s.push_str("\n\n");
 
         s.push_str(&format!("  Tasks Analyzed:   {}\n", attr.task_count));
-        s.push_str(&format!("  Avg Cycle Time:   {:.1}s\n", attr.avg_cycle_time_s));
-        s.push_str(&format!("  Avg Waste Time:   {:.1}s ({:.1}%)\n\n",
+        s.push_str(&format!(
+            "  Avg Cycle Time:   {:.1}s\n",
+            attr.avg_cycle_time_s
+        ));
+        s.push_str(&format!(
+            "  Avg Waste Time:   {:.1}s ({:.1}%)\n\n",
             attr.avg_waste_time_s,
-            attr.waste_ratio * 100.0));
+            attr.waste_ratio * 100.0
+        ));
 
         s.push_str("  Time Breakdown:\n");
         s.push_str("  +----------------------+--------+---------+---------+\n");
@@ -238,16 +272,39 @@ impl RCAReporter {
         s.push_str(&"-".repeat(70));
         s.push_str("\n\n");
 
-        s.push_str(&format!("  Total Bottlenecks: {}\n", analysis.summary.total_count));
-        s.push_str(&format!("    Congestion:  {}\n", analysis.summary.congestion_count));
-        s.push_str(&format!("    Station:     {}\n", analysis.summary.station_count));
-        s.push_str(&format!("    Robot:       {}\n", analysis.summary.robot_count));
-        s.push_str(&format!("  Avg Severity:    {:.1}/100\n", analysis.summary.avg_severity));
-        s.push_str(&format!("  Max Severity:    {:.1}/100\n\n", analysis.summary.max_severity));
+        s.push_str(&format!(
+            "  Total Bottlenecks: {}\n",
+            analysis.summary.total_count
+        ));
+        s.push_str(&format!(
+            "    Congestion:  {}\n",
+            analysis.summary.congestion_count
+        ));
+        s.push_str(&format!(
+            "    Station:     {}\n",
+            analysis.summary.station_count
+        ));
+        s.push_str(&format!(
+            "    Robot:       {}\n",
+            analysis.summary.robot_count
+        ));
+        s.push_str(&format!(
+            "  Avg Severity:    {:.1}/100\n",
+            analysis.summary.avg_severity
+        ));
+        s.push_str(&format!(
+            "  Max Severity:    {:.1}/100\n\n",
+            analysis.summary.max_severity
+        ));
 
         if !analysis.bottlenecks.is_empty() {
             s.push_str("  Top Bottlenecks:\n");
-            for (i, b) in analysis.bottlenecks.iter().take(self.max_bottlenecks).enumerate() {
+            for (i, b) in analysis
+                .bottlenecks
+                .iter()
+                .take(self.max_bottlenecks)
+                .enumerate()
+            {
                 s.push_str(&format!(
                     "  {}. [{:>5.1}] {}: {}\n",
                     i + 1,
@@ -268,10 +325,22 @@ impl RCAReporter {
         s.push_str(&"-".repeat(70));
         s.push_str("\n\n");
 
-        s.push_str(&format!("  Orders Analyzed:          {}\n", summary.order_count));
-        s.push_str(&format!("  Avg Cycle Time:           {:.1}s\n", summary.avg_cycle_time_s));
-        s.push_str(&format!("  Slow Orders:              {}\n", summary.slow_order_count));
-        s.push_str(&format!("  Most Common Critical:     {}\n\n", summary.most_common_critical_phase.name()));
+        s.push_str(&format!(
+            "  Orders Analyzed:          {}\n",
+            summary.order_count
+        ));
+        s.push_str(&format!(
+            "  Avg Cycle Time:           {:.1}s\n",
+            summary.avg_cycle_time_s
+        ));
+        s.push_str(&format!(
+            "  Slow Orders:              {}\n",
+            summary.slow_order_count
+        ));
+        s.push_str(&format!(
+            "  Most Common Critical:     {}\n\n",
+            summary.most_common_critical_phase.name()
+        ));
 
         if !summary.phases_ranked.is_empty() {
             s.push_str("  Phase Breakdown:\n");
@@ -309,7 +378,10 @@ impl RCAReporter {
                 ));
             }
             if anomalies.len() > self.max_anomalies {
-                s.push_str(&format!("  ... and {} more\n", anomalies.len() - self.max_anomalies));
+                s.push_str(&format!(
+                    "  ... and {} more\n",
+                    anomalies.len() - self.max_anomalies
+                ));
             }
             s.push('\n');
         }
@@ -345,24 +417,35 @@ impl RCAReporter {
         s.push_str(&"=".repeat(50));
         s.push_str("\n");
 
-        s.push_str(&format!("Health Score: {:.0}/100\n", report.summary.health_score));
-        s.push_str(&format!("Orders: {} | Avg Cycle: {:.1}s\n",
-            report.summary.orders_analyzed,
-            report.summary.avg_cycle_time_s));
-        s.push_str(&format!("Primary Issue: {}\n", report.summary.primary_delay_source));
+        s.push_str(&format!(
+            "Health Score: {:.0}/100\n",
+            report.summary.health_score
+        ));
+        s.push_str(&format!(
+            "Orders: {} | Avg Cycle: {:.1}s\n",
+            report.summary.orders_analyzed, report.summary.avg_cycle_time_s
+        ));
+        s.push_str(&format!(
+            "Primary Issue: {}\n",
+            report.summary.primary_delay_source
+        ));
 
         if let Some(ref bottleneck) = report.summary.primary_bottleneck {
             s.push_str(&format!("Top Bottleneck: {}\n", bottleneck));
         }
 
-        s.push_str(&format!("Anomalies: {} | Slow Orders: {}\n",
-            report.summary.anomaly_count,
-            report.summary.slow_order_count));
+        s.push_str(&format!(
+            "Anomalies: {} | Slow Orders: {}\n",
+            report.summary.anomaly_count, report.summary.slow_order_count
+        ));
 
         s.push_str(&format!("\nFinding: {}\n", report.summary.key_finding));
 
         if !report.recommendations.is_empty() {
-            s.push_str(&format!("\nTop Recommendation: {}\n", report.recommendations[0].text));
+            s.push_str(&format!(
+                "\nTop Recommendation: {}\n",
+                report.recommendations[0].text
+            ));
         }
 
         s
@@ -430,14 +513,12 @@ mod tests {
                 phases_ranked: Vec::new(),
             },
             anomalies: Vec::new(),
-            recommendations: vec![
-                Recommendation {
-                    priority: 1,
-                    category: "Traffic".to_string(),
-                    text: "Add alternate routes".to_string(),
-                    expected_impact: "Reduce congestion by 20%".to_string(),
-                },
-            ],
+            recommendations: vec![Recommendation {
+                priority: 1,
+                category: "Traffic".to_string(),
+                text: "Add alternate routes".to_string(),
+                expected_impact: "Reduce congestion by 20%".to_string(),
+            }],
         }
     }
 
@@ -477,7 +558,10 @@ mod tests {
     fn test_format_parsing() {
         assert_eq!(ReportFormat::from_str("text"), Some(ReportFormat::Text));
         assert_eq!(ReportFormat::from_str("JSON"), Some(ReportFormat::Json));
-        assert_eq!(ReportFormat::from_str("compact"), Some(ReportFormat::Compact));
+        assert_eq!(
+            ReportFormat::from_str("compact"),
+            Some(ReportFormat::Compact)
+        );
         assert_eq!(ReportFormat::from_str("invalid"), None);
     }
 }

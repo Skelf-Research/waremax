@@ -1,9 +1,9 @@
 //! Inventory tracking
 
-use waremax_core::SkuId;
 use crate::rack::BinAddress;
 use std::collections::HashMap;
 use thiserror::Error;
+use waremax_core::SkuId;
 
 /// Error types for inventory operations
 #[derive(Error, Debug)]
@@ -60,8 +60,12 @@ impl Inventory {
     }
 
     pub fn add_placement(&mut self, address: BinAddress, sku_id: SkuId, quantity: u32) {
-        self.bins.insert(address.clone(), InventorySlot { sku_id, quantity });
-        self.sku_locations.entry(sku_id).or_default().push(address.clone());
+        self.bins
+            .insert(address.clone(), InventorySlot { sku_id, quantity });
+        self.sku_locations
+            .entry(sku_id)
+            .or_default()
+            .push(address.clone());
         self.register_bin(address);
     }
 
@@ -74,18 +78,25 @@ impl Inventory {
     }
 
     pub fn find_sku(&self, sku_id: SkuId) -> impl Iterator<Item = &BinAddress> {
-        self.sku_locations.get(&sku_id).into_iter().flat_map(|v| v.iter())
+        self.sku_locations
+            .get(&sku_id)
+            .into_iter()
+            .flat_map(|v| v.iter())
     }
 
     pub fn find_sku_with_stock(&self, sku_id: SkuId, min_qty: u32) -> Option<&BinAddress> {
-        self.sku_locations
-            .get(&sku_id)?
-            .iter()
-            .find(|addr| self.bins.get(*addr).map_or(false, |s| s.quantity >= min_qty))
+        self.sku_locations.get(&sku_id)?.iter().find(|addr| {
+            self.bins
+                .get(*addr)
+                .map_or(false, |s| s.quantity >= min_qty)
+        })
     }
 
     pub fn decrement(&mut self, address: &BinAddress, qty: u32) -> Result<(), InventoryError> {
-        let slot = self.bins.get_mut(address).ok_or_else(|| InventoryError::BinNotFound(address.clone()))?;
+        let slot = self
+            .bins
+            .get_mut(address)
+            .ok_or_else(|| InventoryError::BinNotFound(address.clone()))?;
 
         if slot.quantity < qty {
             return Err(InventoryError::InsufficientStock {
@@ -100,7 +111,10 @@ impl Inventory {
     }
 
     pub fn increment(&mut self, address: &BinAddress, qty: u32) -> Result<(), InventoryError> {
-        let slot = self.bins.get_mut(address).ok_or_else(|| InventoryError::BinNotFound(address.clone()))?;
+        let slot = self
+            .bins
+            .get_mut(address)
+            .ok_or_else(|| InventoryError::BinNotFound(address.clone()))?;
         slot.quantity += qty;
         Ok(())
     }
@@ -122,9 +136,7 @@ impl Inventory {
     pub fn get_empty_bins(&self) -> Vec<&BinAddress> {
         self.all_bins
             .iter()
-            .filter(|addr| {
-                self.bins.get(*addr).map_or(true, |slot| slot.quantity == 0)
-            })
+            .filter(|addr| self.bins.get(*addr).map_or(true, |slot| slot.quantity == 0))
             .collect()
     }
 
@@ -167,8 +179,17 @@ impl Inventory {
 
     /// Create a new empty bin slot (for putaway destination)
     pub fn create_empty_slot(&mut self, address: BinAddress, sku_id: SkuId) {
-        self.bins.insert(address.clone(), InventorySlot { sku_id, quantity: 0 });
-        self.sku_locations.entry(sku_id).or_default().push(address.clone());
+        self.bins.insert(
+            address.clone(),
+            InventorySlot {
+                sku_id,
+                quantity: 0,
+            },
+        );
+        self.sku_locations
+            .entry(sku_id)
+            .or_default()
+            .push(address.clone());
         self.register_bin(address);
     }
 }

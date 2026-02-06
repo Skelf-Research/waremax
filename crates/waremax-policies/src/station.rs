@@ -1,8 +1,8 @@
 //! Station assignment policies
 
-use crate::traits::{StationAssignmentPolicy, PolicyContext};
+use crate::traits::{PolicyContext, StationAssignmentPolicy};
 use waremax_core::StationId;
-use waremax_entities::{Task, StationType};
+use waremax_entities::{StationType, Task};
 
 /// Assign tasks to the station with the least queue
 pub struct LeastQueuePolicy {
@@ -72,7 +72,9 @@ impl StationAssignmentPolicy for NearestStationPolicy {
             .min_by(|a, b| {
                 let dist_a = ctx.map.euclidean_distance(task_node, a.node);
                 let dist_b = ctx.map.euclidean_distance(task_node, b.node);
-                dist_a.partial_cmp(&dist_b).unwrap_or(std::cmp::Ordering::Equal)
+                dist_a
+                    .partial_cmp(&dist_b)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
             .map(|s| s.id)
     }
@@ -131,7 +133,9 @@ impl StationAssignmentPolicy for FastestServicePolicy {
                 let total_a = travel_a + wait_a + self.avg_service_time_s;
                 let total_b = travel_b + wait_b + self.avg_service_time_s;
 
-                total_a.partial_cmp(&total_b).unwrap_or(std::cmp::Ordering::Equal)
+                total_a
+                    .partial_cmp(&total_b)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
             .map(|s| s.id)
     }
@@ -212,7 +216,9 @@ impl StationAssignmentPolicy for DueTimePriorityStationPolicy {
                 .min_by(|a, b| {
                     let dist_a = ctx.map.euclidean_distance(task_node, a.node);
                     let dist_b = ctx.map.euclidean_distance(task_node, b.node);
-                    dist_a.partial_cmp(&dist_b).unwrap_or(std::cmp::Ordering::Equal)
+                    dist_a
+                        .partial_cmp(&dist_b)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 })
                 .map(|s| s.id)
         }
@@ -226,11 +232,11 @@ impl StationAssignmentPolicy for DueTimePriorityStationPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use waremax_core::{NodeId, OrderId, RobotId, TaskId, SimTime};
-    use waremax_entities::{Robot, Task, BinLocation, Station, Order, ServiceTimeModel};
-    use waremax_map::{WarehouseMap, Node, NodeType};
-    use waremax_storage::BinAddress;
     use std::collections::HashMap;
+    use waremax_core::{NodeId, OrderId, RobotId, SimTime, TaskId};
+    use waremax_entities::{BinLocation, Order, Robot, ServiceTimeModel, Station, Task};
+    use waremax_map::{Node, NodeType, WarehouseMap};
+    use waremax_storage::BinAddress;
 
     fn test_context<'a>(
         map: &'a WarehouseMap,
@@ -281,10 +287,34 @@ mod tests {
     fn make_map_with_nodes() -> WarehouseMap {
         let mut map = WarehouseMap::new();
         // Create nodes at specific positions
-        map.add_node(Node::new(NodeId(0), "N0".to_string(), 0.0, 0.0, NodeType::Aisle));
-        map.add_node(Node::new(NodeId(1), "N1".to_string(), 10.0, 0.0, NodeType::StationPick));
-        map.add_node(Node::new(NodeId(2), "N2".to_string(), 5.0, 0.0, NodeType::StationPick));
-        map.add_node(Node::new(NodeId(3), "N3".to_string(), 20.0, 0.0, NodeType::StationPick));
+        map.add_node(Node::new(
+            NodeId(0),
+            "N0".to_string(),
+            0.0,
+            0.0,
+            NodeType::Aisle,
+        ));
+        map.add_node(Node::new(
+            NodeId(1),
+            "N1".to_string(),
+            10.0,
+            0.0,
+            NodeType::StationPick,
+        ));
+        map.add_node(Node::new(
+            NodeId(2),
+            "N2".to_string(),
+            5.0,
+            0.0,
+            NodeType::StationPick,
+        ));
+        map.add_node(Node::new(
+            NodeId(3),
+            "N3".to_string(),
+            20.0,
+            0.0,
+            NodeType::StationPick,
+        ));
         map
     }
 

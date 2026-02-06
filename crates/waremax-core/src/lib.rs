@@ -3,16 +3,16 @@
 //! This crate provides the fundamental types and discrete-event simulation kernel
 //! used throughout the Waremax simulation system.
 
-pub mod time;
-pub mod id;
+pub mod error;
 pub mod event;
+pub mod id;
 pub mod kernel;
 pub mod rng;
-pub mod error;
+pub mod time;
 
-pub use time::SimTime;
+pub use error::SimError;
+pub use event::{ScheduledEvent, SimEvent};
 pub use id::*;
-pub use event::{SimEvent, ScheduledEvent};
 pub use kernel::Kernel;
 pub use rng::SimRng;
-pub use error::SimError;
+pub use time::SimTime;

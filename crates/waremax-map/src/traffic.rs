@@ -1,8 +1,8 @@
 //! Traffic management for edge and node capacity
 
-use waremax_core::{NodeId, EdgeId, RobotId};
-use std::collections::{HashMap, HashSet};
 use crate::deadlock::{WaitForGraph, WaitingFor};
+use std::collections::{HashMap, HashSet};
+use waremax_core::{EdgeId, NodeId, RobotId};
 
 /// Manages traffic flow and capacity constraints in the warehouse
 pub struct TrafficManager {
@@ -46,7 +46,11 @@ impl TrafficManager {
     }
 
     pub fn can_enter_edge(&self, edge: EdgeId, robot: RobotId) -> bool {
-        let capacity = self.edge_capacity.get(&edge).copied().unwrap_or(self.default_edge_capacity);
+        let capacity = self
+            .edge_capacity
+            .get(&edge)
+            .copied()
+            .unwrap_or(self.default_edge_capacity);
         let occupants = self.edge_occupancy.get(&edge);
 
         if let Some(set) = occupants {
@@ -60,7 +64,11 @@ impl TrafficManager {
     }
 
     pub fn can_enter_node(&self, node: NodeId, robot: RobotId) -> bool {
-        let capacity = self.node_capacity.get(&node).copied().unwrap_or(self.default_node_capacity);
+        let capacity = self
+            .node_capacity
+            .get(&node)
+            .copied()
+            .unwrap_or(self.default_node_capacity);
         let occupants = self.node_occupancy.get(&node);
 
         if let Some(set) = occupants {
@@ -102,11 +110,17 @@ impl TrafficManager {
     }
 
     pub fn robots_on_edge(&self, edge: EdgeId) -> impl Iterator<Item = RobotId> + '_ {
-        self.edge_occupancy.get(&edge).into_iter().flat_map(|s| s.iter().copied())
+        self.edge_occupancy
+            .get(&edge)
+            .into_iter()
+            .flat_map(|s| s.iter().copied())
     }
 
     pub fn robots_at_node(&self, node: NodeId) -> impl Iterator<Item = RobotId> + '_ {
-        self.node_occupancy.get(&node).into_iter().flat_map(|s| s.iter().copied())
+        self.node_occupancy
+            .get(&node)
+            .into_iter()
+            .flat_map(|s| s.iter().copied())
     }
 
     // === v2: Deadlock Detection Methods ===
@@ -119,14 +133,15 @@ impl TrafficManager {
             return;
         }
 
-        let blockers: Vec<RobotId> = self.robots_on_edge(edge)
-            .filter(|&r| r != robot)
-            .collect();
+        let blockers: Vec<RobotId> = self.robots_on_edge(edge).filter(|&r| r != robot).collect();
 
-        self.wait_graph.add_wait(robot, WaitingFor::Edge {
-            edge_id: edge,
-            blocked_by: blockers,
-        });
+        self.wait_graph.add_wait(
+            robot,
+            WaitingFor::Edge {
+                edge_id: edge,
+                blocked_by: blockers,
+            },
+        );
     }
 
     /// Record that a robot is waiting for a node
@@ -137,14 +152,15 @@ impl TrafficManager {
             return;
         }
 
-        let blockers: Vec<RobotId> = self.robots_at_node(node)
-            .filter(|&r| r != robot)
-            .collect();
+        let blockers: Vec<RobotId> = self.robots_at_node(node).filter(|&r| r != robot).collect();
 
-        self.wait_graph.add_wait(robot, WaitingFor::Node {
-            node_id: node,
-            blocked_by: blockers,
-        });
+        self.wait_graph.add_wait(
+            robot,
+            WaitingFor::Node {
+                node_id: node,
+                blocked_by: blockers,
+            },
+        );
     }
 
     /// Clear a robot's wait status (e.g., when it acquires the resource)

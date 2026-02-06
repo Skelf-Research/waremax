@@ -42,9 +42,11 @@ impl PdfReportGenerator {
         let current_layer = doc.get_page(page1).get_layer(layer1);
 
         // Use built-in font
-        let font = doc.add_builtin_font(BuiltinFont::Helvetica)
+        let font = doc
+            .add_builtin_font(BuiltinFont::Helvetica)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Font error: {:?}", e)))?;
-        let font_bold = doc.add_builtin_font(BuiltinFont::HelveticaBold)
+        let font_bold = doc
+            .add_builtin_font(BuiltinFont::HelveticaBold)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Font error: {:?}", e)))?;
 
         let mut y_pos = self.page_height_mm - self.margin_mm;
@@ -61,7 +63,13 @@ impl PdfReportGenerator {
         y_pos -= 15.0;
 
         // Horizontal line
-        self.draw_line(&current_layer, x_pos, y_pos, self.page_width_mm - self.margin_mm, y_pos);
+        self.draw_line(
+            &current_layer,
+            x_pos,
+            y_pos,
+            self.page_width_mm - self.margin_mm,
+            y_pos,
+        );
         y_pos -= 10.0;
 
         // Summary section
@@ -89,8 +97,14 @@ impl PdfReportGenerator {
         let perf_lines = [
             format!("Average Cycle Time: {:.1} seconds", report.avg_cycle_time_s),
             format!("P95 Cycle Time: {:.1} seconds", report.p95_cycle_time_s),
-            format!("Robot Utilization: {:.1}%", report.robot_utilization * 100.0),
-            format!("Station Utilization: {:.1}%", report.station_utilization * 100.0),
+            format!(
+                "Robot Utilization: {:.1}%",
+                report.robot_utilization * 100.0
+            ),
+            format!(
+                "Station Utilization: {:.1}%",
+                report.station_utilization * 100.0
+            ),
         ];
 
         for line in &perf_lines {
@@ -127,8 +141,14 @@ impl PdfReportGenerator {
             let cong_lines = [
                 format!("Node Wait Events: {}", congestion.total_node_wait_events),
                 format!("Edge Wait Events: {}", congestion.total_edge_wait_events),
-                format!("Total Node Wait Time: {:.1} seconds", congestion.total_node_wait_time_s),
-                format!("Total Edge Wait Time: {:.1} seconds", congestion.total_edge_wait_time_s),
+                format!(
+                    "Total Node Wait Time: {:.1} seconds",
+                    congestion.total_node_wait_time_s
+                ),
+                format!(
+                    "Total Edge Wait Time: {:.1} seconds",
+                    congestion.total_edge_wait_time_s
+                ),
             ];
 
             for line in &cong_lines {
@@ -145,8 +165,14 @@ impl PdfReportGenerator {
 
             let batt_lines = [
                 format!("Charging Events: {}", battery.total_charging_events),
-                format!("Energy Consumed: {:.1} Wh", battery.total_energy_consumed_wh),
-                format!("Total Charging Time: {:.1} seconds", battery.total_charging_time_s),
+                format!(
+                    "Energy Consumed: {:.1} Wh",
+                    battery.total_energy_consumed_wh
+                ),
+                format!(
+                    "Total Charging Time: {:.1} seconds",
+                    battery.total_charging_time_s
+                ),
             ];
 
             for line in &batt_lines {
@@ -168,7 +194,8 @@ impl PdfReportGenerator {
             y_pos -= 8.0;
 
             let total_tasks: u32 = robots.iter().map(|r| r.tasks_completed).sum();
-            let avg_util: f64 = robots.iter().map(|r| r.utilization).sum::<f64>() / robots.len() as f64;
+            let avg_util: f64 =
+                robots.iter().map(|r| r.utilization).sum::<f64>() / robots.len() as f64;
             let total_failures: u32 = robots.iter().map(|r| r.failure_count).sum();
 
             let robot_lines = [
@@ -196,7 +223,8 @@ impl PdfReportGenerator {
             y_pos -= 8.0;
 
             let total_served: u32 = stations.iter().map(|s| s.orders_served).sum();
-            let avg_util: f64 = stations.iter().map(|s| s.utilization).sum::<f64>() / stations.len() as f64;
+            let avg_util: f64 =
+                stations.iter().map(|s| s.utilization).sum::<f64>() / stations.len() as f64;
 
             let station_lines = [
                 format!("Total Orders Served: {}", total_served),
@@ -222,8 +250,9 @@ impl PdfReportGenerator {
         // Save the document
         let file = File::create(output_path)?;
         let mut buf_writer = BufWriter::new(file);
-        doc.save(&mut buf_writer)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("PDF save error: {:?}", e)))?;
+        doc.save(&mut buf_writer).map_err(|e| {
+            io::Error::new(io::ErrorKind::Other, format!("PDF save error: {:?}", e))
+        })?;
 
         Ok(())
     }

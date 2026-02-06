@@ -85,7 +85,6 @@ enum Commands {
     },
 
     // v4: Testing & Benchmarking commands
-
     /// Generate a scenario file from a preset
     Generate {
         /// Preset name: minimal, quick, standard, baseline, high_load, peak_hours, stress_test, battery_test, maintenance_test
@@ -342,7 +341,13 @@ fn main() {
             regression_threshold,
             output,
         } => {
-            run_benchmark(suite.as_deref(), replications, history.as_deref(), regression_threshold, output.as_deref());
+            run_benchmark(
+                suite.as_deref(),
+                replications,
+                history.as_deref(),
+                regression_threshold,
+                output.as_deref(),
+            );
         }
         Commands::StressTest {
             robots,
@@ -365,7 +370,13 @@ fn main() {
             detailed,
             anomaly_threshold,
         } => {
-            run_analyze(&scenario, output.as_deref(), &format, detailed, anomaly_threshold);
+            run_analyze(
+                &scenario,
+                output.as_deref(),
+                &format,
+                detailed,
+                anomaly_threshold,
+            );
         }
 
         // v6: Interactive Web UI
@@ -466,21 +477,40 @@ fn run_simulation(
         };
 
         let world = runner.world();
-        let timeseries_ref = if timeseries { Some(&world.time_series) } else { None };
-        let trace_ref = if trace_enabled { Some(&world.trace_collector) } else { None };
+        let timeseries_ref = if timeseries {
+            Some(&world.time_series)
+        } else {
+            None
+        };
+        let trace_ref = if trace_enabled {
+            Some(&world.trace_collector)
+        } else {
+            None
+        };
 
-        match waremax_metrics::write_exports(out_dir, &report, timeseries_ref, trace_ref, &options) {
+        match waremax_metrics::write_exports(out_dir, &report, timeseries_ref, trace_ref, &options)
+        {
             Ok(()) => {
                 println!("\nExports written to: {}", out_dir.display());
-                if options.json { println!("  - report.json"); }
-                if options.robots && report.robot_reports.is_some() { println!("  - robots.csv"); }
-                if options.stations && report.station_reports.is_some() { println!("  - stations.csv"); }
+                if options.json {
+                    println!("  - report.json");
+                }
+                if options.robots && report.robot_reports.is_some() {
+                    println!("  - robots.csv");
+                }
+                if options.stations && report.station_reports.is_some() {
+                    println!("  - stations.csv");
+                }
                 if options.heatmap && report.heatmap.is_some() {
                     println!("  - node_congestion.csv");
                     println!("  - edge_congestion.csv");
                 }
-                if options.timeseries { println!("  - timeseries.csv"); }
-                if options.trace && !world.trace_collector.is_empty() { println!("  - trace.csv"); }
+                if options.timeseries {
+                    println!("  - timeseries.csv");
+                }
+                if options.trace && !world.trace_collector.is_empty() {
+                    println!("  - trace.csv");
+                }
             }
             Err(e) => {
                 eprintln!("Error writing exports: {}", e);
@@ -509,7 +539,10 @@ fn validate_scenario(scenario_path: &PathBuf) {
     let map_path = base_dir.join(&scenario.map.file);
     let map = waremax_config::MapConfig::from_file(&map_path.to_string_lossy()).ok();
     if map.is_none() {
-        println!("  Note: Map file '{}' not found, skipping map validation", scenario.map.file);
+        println!(
+            "  Note: Map file '{}' not found, skipping map validation",
+            scenario.map.file
+        );
     }
 
     let storage_path = base_dir.join(&scenario.storage.file);
@@ -526,7 +559,10 @@ fn validate_scenario(scenario_path: &PathBuf) {
         Ok(warnings) => {
             println!("Scenario valid!");
             println!("  Seed: {}", scenario.seed);
-            println!("  Duration: {} minutes", scenario.simulation.duration_minutes);
+            println!(
+                "  Duration: {} minutes",
+                scenario.simulation.duration_minutes
+            );
             println!("  Warmup: {} minutes", scenario.simulation.warmup_minutes);
             println!("  Robot count: {}", scenario.robots.count);
             println!("  Stations: {}", scenario.stations.len());
@@ -569,9 +605,12 @@ fn build_world_from_scenario(
     seed: u64,
     _scenario_path: &PathBuf,
 ) -> waremax_sim::World {
-    use waremax_core::{NodeId, EdgeId, RobotId, StationId};
-    use waremax_entities::{Robot, Station, StationType, ServiceTimeModel, ChargingStation, BatteryConsumptionModel, MaintenanceStation};
-    use waremax_map::{WarehouseMap, Node, Edge, NodeType, Router, TrafficManager};
+    use waremax_core::{EdgeId, NodeId, RobotId, StationId};
+    use waremax_entities::{
+        BatteryConsumptionModel, ChargingStation, MaintenanceStation, Robot, ServiceTimeModel,
+        Station, StationType,
+    };
+    use waremax_map::{Edge, Node, NodeType, Router, TrafficManager, WarehouseMap};
     use waremax_metrics::TimeSeriesCollector;
 
     let mut world = waremax_sim::World::new(seed);
@@ -587,7 +626,11 @@ fn build_world_from_scenario(
             let id = row * grid_size + col;
             let x = col as f64 * spacing;
             let y = row as f64 * spacing;
-            let node_type = if id == 0 { NodeType::StationPick } else { NodeType::Aisle };
+            let node_type = if id == 0 {
+                NodeType::StationPick
+            } else {
+                NodeType::Aisle
+            };
             let node = Node::new(NodeId(id as u32), format!("N{}", id), x, y, node_type);
             map.add_node(node);
         }
@@ -599,16 +642,22 @@ fn build_world_from_scenario(
             let id = row * grid_size + col;
             if col < grid_size - 1 {
                 let neighbor = id + 1;
-                map.add_edge(
-                    Edge::new(EdgeId(edge_id), NodeId(id as u32), NodeId(neighbor as u32), spacing),
-                );
+                map.add_edge(Edge::new(
+                    EdgeId(edge_id),
+                    NodeId(id as u32),
+                    NodeId(neighbor as u32),
+                    spacing,
+                ));
                 edge_id += 1;
             }
             if row < grid_size - 1 {
                 let neighbor = id + grid_size;
-                map.add_edge(
-                    Edge::new(EdgeId(edge_id), NodeId(id as u32), NodeId(neighbor as u32), spacing),
-                );
+                map.add_edge(Edge::new(
+                    EdgeId(edge_id),
+                    NodeId(id as u32),
+                    NodeId(neighbor as u32),
+                    spacing,
+                ));
                 edge_id += 1;
             }
         }
@@ -662,9 +711,11 @@ fn build_world_from_scenario(
     }
 
     if scenario.robots.battery.enabled {
-        println!("Battery: enabled (capacity: {} Wh, min SOC: {:.0}%)",
+        println!(
+            "Battery: enabled (capacity: {} Wh, min SOC: {:.0}%)",
             scenario.robots.battery.capacity_wh,
-            scenario.robots.battery.min_soc * 100.0);
+            scenario.robots.battery.min_soc * 100.0
+        );
     }
 
     // Add stations from config
@@ -684,9 +735,7 @@ fn build_world_from_scenario(
                 station_cfg.service_time_s.per_item,
                 station_cfg.service_time_s.per_item_stddev,
             ),
-            "exponential" => ServiceTimeModel::exponential(
-                station_cfg.service_time_s.base,
-            ),
+            "exponential" => ServiceTimeModel::exponential(station_cfg.service_time_s.base),
             "uniform" => ServiceTimeModel::uniform(
                 station_cfg.service_time_s.min_s,
                 station_cfg.service_time_s.max_s,
@@ -761,7 +810,8 @@ fn build_world_from_scenario(
             NodeId(node_id),
             cfg.bays,
             cfg.maintenance_duration_s,
-        ).with_repair_time_model(repair_time_model);
+        )
+        .with_repair_time_model(repair_time_model);
 
         if let Some(capacity) = cfg.queue_capacity {
             station = station.with_queue_capacity(capacity);
@@ -770,15 +820,24 @@ fn build_world_from_scenario(
     }
 
     if !scenario.maintenance_stations.is_empty() {
-        println!("Maintenance Stations: {}", scenario.maintenance_stations.len());
+        println!(
+            "Maintenance Stations: {}",
+            scenario.maintenance_stations.len()
+        );
     }
 
     // v3: Print maintenance/failure settings
     if scenario.robots.maintenance.enabled {
-        println!("Maintenance: enabled (interval: {:.1} hours)", scenario.robots.maintenance.interval_hours);
+        println!(
+            "Maintenance: enabled (interval: {:.1} hours)",
+            scenario.robots.maintenance.interval_hours
+        );
     }
     if scenario.robots.failure.enabled {
-        println!("Failures: enabled (MTBF: {:.1} hours)", scenario.robots.failure.mtbf_hours);
+        println!(
+            "Failures: enabled (MTBF: {:.1} hours)",
+            scenario.robots.failure.mtbf_hours
+        );
     }
 
     // Set due time offset
@@ -793,7 +852,8 @@ fn build_world_from_scenario(
     println!("  SKU Selection: {}", skus);
 
     // Create policies from config (including traffic policy)
-    world.policies = waremax_sim::create_policies_with_traffic(&scenario.policies, &scenario.traffic);
+    world.policies =
+        waremax_sim::create_policies_with_traffic(&scenario.policies, &scenario.traffic);
     let (alloc, station, batch, prio, traffic) = world.policies.all_names();
     println!("Policies:");
     println!("  Task Allocation: {}", alloc);
@@ -809,7 +869,10 @@ fn build_world_from_scenario(
     // v2: Set up reservation-based traffic control
     world.reservation_manager.enabled = scenario.traffic.reservation_enabled;
     if scenario.traffic.reservation_enabled {
-        println!("  Reservation System: enabled (lookahead: {:.1}s)", scenario.traffic.reservation_lookahead_s);
+        println!(
+            "  Reservation System: enabled (lookahead: {:.1}s)",
+            scenario.traffic.reservation_lookahead_s
+        );
     }
 
     // Initialize demo inventory with 20 SKUs
@@ -819,9 +882,9 @@ fn build_world_from_scenario(
 }
 
 fn build_demo_world(seed: u64, num_robots: usize, order_rate: f64) -> waremax_sim::World {
-    use waremax_core::{NodeId, EdgeId, RobotId, StationId};
-    use waremax_entities::{Robot, Station, StationType, ServiceTimeModel};
-    use waremax_map::{WarehouseMap, Node, Edge, NodeType, Router, TrafficManager};
+    use waremax_core::{EdgeId, NodeId, RobotId, StationId};
+    use waremax_entities::{Robot, ServiceTimeModel, Station, StationType};
+    use waremax_map::{Edge, Node, NodeType, Router, TrafficManager, WarehouseMap};
 
     let mut world = waremax_sim::World::new(seed);
 
@@ -846,7 +909,13 @@ fn build_demo_world(seed: u64, num_robots: usize, order_rate: f64) -> waremax_si
                 NodeType::Rack
             };
 
-            map.add_node(Node::new(NodeId(id as u32), format!("N{}", id), x, y, node_type));
+            map.add_node(Node::new(
+                NodeId(id as u32),
+                format!("N{}", id),
+                x,
+                y,
+                node_type,
+            ));
         }
     }
 
@@ -859,18 +928,24 @@ fn build_demo_world(seed: u64, num_robots: usize, order_rate: f64) -> waremax_si
             // Connect to right neighbor
             if col < grid_size - 1 {
                 let neighbor = id + 1;
-                map.add_edge(
-                    Edge::new(EdgeId(edge_id), NodeId(id as u32), NodeId(neighbor as u32), spacing),
-                );
+                map.add_edge(Edge::new(
+                    EdgeId(edge_id),
+                    NodeId(id as u32),
+                    NodeId(neighbor as u32),
+                    spacing,
+                ));
                 edge_id += 1;
             }
 
             // Connect to bottom neighbor
             if row < grid_size - 1 {
                 let neighbor = id + grid_size;
-                map.add_edge(
-                    Edge::new(EdgeId(edge_id), NodeId(id as u32), NodeId(neighbor as u32), spacing),
-                );
+                map.add_edge(Edge::new(
+                    EdgeId(edge_id),
+                    NodeId(id as u32),
+                    NodeId(neighbor as u32),
+                    spacing,
+                ));
                 edge_id += 1;
             }
         }
@@ -905,7 +980,9 @@ fn build_demo_world(seed: u64, num_robots: usize, order_rate: f64) -> waremax_si
     world.due_time_offset_min = Some(60.0);
 
     // Create demo distributions with specified order rate
-    use waremax_sim::distributions::{ExponentialArrivals, NegBinomialLines, ZipfSkus, DistributionSet};
+    use waremax_sim::distributions::{
+        DistributionSet, ExponentialArrivals, NegBinomialLines, ZipfSkus,
+    };
     world.distributions = DistributionSet::new(
         Box::new(ExponentialArrivals::new(order_rate / 60.0)), // Convert per-min to per-sec
         Box::new(NegBinomialLines::new(2.0, 1.0)),
@@ -1008,20 +1085,22 @@ fn run_generate(
     }
 
     println!("Scenario generated: {}", output.display());
-    println!("  Preset: {} - {}", preset_enum.name(), preset_enum.description());
+    println!(
+        "  Preset: {} - {}",
+        preset_enum.name(),
+        preset_enum.description()
+    );
     println!("  Robots: {}", config.robots.count);
     println!("  Stations: {}", config.stations.len());
-    println!("  Order Rate: {:.1} orders/hr", config.orders.arrival_process.rate_per_min * 60.0);
+    println!(
+        "  Order Rate: {:.1} orders/hr",
+        config.orders.arrival_process.rate_per_min * 60.0
+    );
     println!("  Duration: {:.1} min", config.simulation.duration_minutes);
 }
 
-fn run_sweep(
-    base: &PathBuf,
-    sweep_spec: &str,
-    replications: u32,
-    output_dir: &PathBuf,
-) {
-    use waremax_testing::{SweepGenerator, BatchRunner, ScenarioComparator};
+fn run_sweep(base: &PathBuf, sweep_spec: &str, replications: u32, output_dir: &PathBuf) {
+    use waremax_testing::{BatchRunner, ScenarioComparator, SweepGenerator};
 
     println!("Running parameter sweep...");
     println!("  Base scenario: {}", base.display());
@@ -1052,25 +1131,22 @@ fn run_sweep(
 
     match param {
         "robots" => {
-            let vals: Vec<u32> = values.iter()
-                .filter_map(|v| v.parse().ok())
-                .collect();
+            let vals: Vec<u32> = values.iter().filter_map(|v| v.parse().ok()).collect();
             generator = generator.sweep_robot_count(&vals);
         }
         "order_rate" => {
-            let vals: Vec<f64> = values.iter()
-                .filter_map(|v| v.parse().ok())
-                .collect();
+            let vals: Vec<f64> = values.iter().filter_map(|v| v.parse().ok()).collect();
             generator = generator.sweep_order_rate(&vals);
         }
         "stations" => {
-            let vals: Vec<u32> = values.iter()
-                .filter_map(|v| v.parse().ok())
-                .collect();
+            let vals: Vec<u32> = values.iter().filter_map(|v| v.parse().ok()).collect();
             generator = generator.sweep_station_count(&vals);
         }
         _ => {
-            eprintln!("Unknown sweep parameter: {}. Supported: robots, order_rate, stations", param);
+            eprintln!(
+                "Unknown sweep parameter: {}. Supported: robots, order_rate, stations",
+                param
+            );
             std::process::exit(1);
         }
     }
@@ -1106,23 +1182,34 @@ fn run_sweep(
     println!("\nResults by Throughput:");
     println!("{:-<60}", "");
     for (i, (label, stats)) in ranking.iter().enumerate() {
-        println!("{:2}. {:30} {:.1} ± {:.1} orders/hr",
-            i + 1, label, stats.mean, stats.std_dev);
+        println!(
+            "{:2}. {:30} {:.1} ± {:.1} orders/hr",
+            i + 1,
+            label,
+            stats.mean,
+            stats.std_dev
+        );
     }
 
     // Save results
     let results_path = output_dir.join("sweep_results.json");
-    let results_json = serde_json::to_string_pretty(&results.iter().map(|r| {
-        serde_json::json!({
-            "label": r.label,
-            "seed": r.seed,
-            "throughput": r.throughput(),
-            "p95_cycle_time": r.p95_cycle_time(),
-            "robot_utilization": r.robot_utilization(),
-            "station_utilization": r.station_utilization(),
-            "duration_ms": r.duration_ms,
-        })
-    }).collect::<Vec<_>>()).unwrap();
+    let results_json = serde_json::to_string_pretty(
+        &results
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "label": r.label,
+                    "seed": r.seed,
+                    "throughput": r.throughput(),
+                    "p95_cycle_time": r.p95_cycle_time(),
+                    "robot_utilization": r.robot_utilization(),
+                    "station_utilization": r.station_utilization(),
+                    "duration_ms": r.duration_ms,
+                })
+            })
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
 
     if let Err(e) = std::fs::write(&results_path, results_json) {
         eprintln!("Failed to write results: {}", e);
@@ -1145,26 +1232,29 @@ fn run_compare(
     println!("  Replications: {}", replications);
 
     // Load configs
-    let baseline_config = match waremax_config::ScenarioConfig::from_file(&baseline_path.to_string_lossy()) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Failed to load baseline: {}", e);
-            std::process::exit(1);
-        }
-    };
+    let baseline_config =
+        match waremax_config::ScenarioConfig::from_file(&baseline_path.to_string_lossy()) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Failed to load baseline: {}", e);
+                std::process::exit(1);
+            }
+        };
 
-    let variant_config = match waremax_config::ScenarioConfig::from_file(&variant_path.to_string_lossy()) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Failed to load variant: {}", e);
-            std::process::exit(1);
-        }
-    };
+    let variant_config =
+        match waremax_config::ScenarioConfig::from_file(&variant_path.to_string_lossy()) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Failed to load variant: {}", e);
+                std::process::exit(1);
+            }
+        };
 
     // Run baseline with multiple seeds
     let seeds: Vec<u64> = (0..replications).map(|i| 1000 + i as u64).collect();
 
-    let baseline_scenarios: Vec<(String, waremax_config::ScenarioConfig)> = seeds.iter()
+    let baseline_scenarios: Vec<(String, waremax_config::ScenarioConfig)> = seeds
+        .iter()
         .map(|&seed| {
             let mut config = baseline_config.clone();
             config.seed = seed;
@@ -1172,7 +1262,8 @@ fn run_compare(
         })
         .collect();
 
-    let variant_scenarios: Vec<(String, waremax_config::ScenarioConfig)> = seeds.iter()
+    let variant_scenarios: Vec<(String, waremax_config::ScenarioConfig)> = seeds
+        .iter()
         .map(|&seed| {
             let mut config = variant_config.clone();
             config.seed = seed;
@@ -1224,21 +1315,23 @@ fn run_ab_test(
     println!("  Alpha: {}", alpha);
 
     // Load configs
-    let baseline_config = match waremax_config::ScenarioConfig::from_file(&baseline_path.to_string_lossy()) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Failed to load baseline: {}", e);
-            std::process::exit(1);
-        }
-    };
+    let baseline_config =
+        match waremax_config::ScenarioConfig::from_file(&baseline_path.to_string_lossy()) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Failed to load baseline: {}", e);
+                std::process::exit(1);
+            }
+        };
 
-    let variant_config = match waremax_config::ScenarioConfig::from_file(&variant_path.to_string_lossy()) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Failed to load variant: {}", e);
-            std::process::exit(1);
-        }
-    };
+    let variant_config =
+        match waremax_config::ScenarioConfig::from_file(&variant_path.to_string_lossy()) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Failed to load variant: {}", e);
+                std::process::exit(1);
+            }
+        };
 
     // Configure and run A/B test
     let config = ABTestConfig::new(baseline_config, variant_config)
@@ -1247,7 +1340,10 @@ fn run_ab_test(
 
     let runner = ABTestRunner::new(config);
 
-    println!("\nRunning A/B test ({} replications per variant)...", replications);
+    println!(
+        "\nRunning A/B test ({} replications per variant)...",
+        replications
+    );
     let result = runner.run();
 
     // Print results
@@ -1271,7 +1367,7 @@ fn run_benchmark(
     regression_threshold: f64,
     output: Option<&std::path::Path>,
 ) {
-    use waremax_testing::{BenchmarkSuite, BenchmarkHistory, ScenarioPreset};
+    use waremax_testing::{BenchmarkHistory, BenchmarkSuite, ScenarioPreset};
 
     println!("Running benchmark suite...");
     println!("  Replications: {}", replications);
@@ -1306,10 +1402,15 @@ fn run_benchmark(
 
         let regressions = history.detect_regressions(&results, regression_threshold);
         if !regressions.is_empty() {
-            println!("\n{} REGRESSION(S) DETECTED vs. history:", regressions.len());
+            println!(
+                "\n{} REGRESSION(S) DETECTED vs. history:",
+                regressions.len()
+            );
             for reg in &regressions {
-                println!("  {} - {}: {:.2} → {:.2} ({:+.1}%)",
-                    reg.benchmark, reg.metric, reg.expected, reg.actual, reg.deviation_pct);
+                println!(
+                    "  {} - {}: {:.2} → {:.2} ({:+.1}%)",
+                    reg.benchmark, reg.metric, reg.expected, reg.actual, reg.deviation_pct
+                );
             }
         } else {
             println!("\nNo regressions detected vs. history");
@@ -1341,7 +1442,7 @@ fn run_stress_test(
     grid: &str,
     output: Option<&std::path::Path>,
 ) {
-    use waremax_testing::{ScenarioBuilder, BatchRunner};
+    use waremax_testing::{BatchRunner, ScenarioBuilder};
 
     println!("Running stress test...");
     println!("  Robots: {}", robots);
@@ -1376,9 +1477,21 @@ fn run_stress_test(
 
     // Run with multiple seeds
     let scenarios = vec![
-        ("stress_seed1".to_string(), { let mut c = config.clone(); c.seed = 1; c }),
-        ("stress_seed2".to_string(), { let mut c = config.clone(); c.seed = 2; c }),
-        ("stress_seed3".to_string(), { let mut c = config.clone(); c.seed = 3; c }),
+        ("stress_seed1".to_string(), {
+            let mut c = config.clone();
+            c.seed = 1;
+            c
+        }),
+        ("stress_seed2".to_string(), {
+            let mut c = config.clone();
+            c.seed = 2;
+            c
+        }),
+        ("stress_seed3".to_string(), {
+            let mut c = config.clone();
+            c.seed = 3;
+            c
+        }),
     ];
 
     println!("\nRunning 3 replications...");
@@ -1399,7 +1512,10 @@ fn run_stress_test(
     println!("  Average Throughput: {:.1} orders/hr", avg_throughput);
     println!("  Average P95 Cycle Time: {:.2} s", avg_p95);
     println!("  Average Robot Utilization: {:.1}%", avg_util * 100.0);
-    println!("  Avg Run Time: {:.1}s", results.iter().map(|r| r.duration_ms).sum::<u64>() as f64 / results.len() as f64 / 1000.0);
+    println!(
+        "  Avg Run Time: {:.1}s",
+        results.iter().map(|r| r.duration_ms).sum::<u64>() as f64 / results.len() as f64 / 1000.0
+    );
 
     // Check for issues
     if avg_util > 0.95 {
@@ -1432,7 +1548,8 @@ fn run_stress_test(
                     "duration_ms": r.duration_ms,
                 })
             }).collect::<Vec<_>>(),
-        })).unwrap();
+        }))
+        .unwrap();
 
         if let Err(e) = std::fs::write(out, json) {
             eprintln!("Failed to write results: {}", e);
@@ -1455,16 +1572,26 @@ fn run_list_presets() {
         println!("  Grid: inferred from stations");
         println!("  Robots: {}", config.robots.count);
         println!("  Stations: {}", config.stations.len());
-        println!("  Order Rate: {:.0} orders/hr", config.orders.arrival_process.rate_per_min * 60.0);
-        println!("  Duration: {:.0} min (warmup: {:.0} min)",
-            config.simulation.duration_minutes,
-            config.simulation.warmup_minutes);
+        println!(
+            "  Order Rate: {:.0} orders/hr",
+            config.orders.arrival_process.rate_per_min * 60.0
+        );
+        println!(
+            "  Duration: {:.0} min (warmup: {:.0} min)",
+            config.simulation.duration_minutes, config.simulation.warmup_minutes
+        );
 
         if config.robots.battery.enabled {
-            println!("  Battery: enabled ({:.0} Wh)", config.robots.battery.capacity_wh);
+            println!(
+                "  Battery: enabled ({:.0} Wh)",
+                config.robots.battery.capacity_wh
+            );
         }
         if config.robots.maintenance.enabled {
-            println!("  Maintenance: enabled ({:.1} hr interval)", config.robots.maintenance.interval_hours);
+            println!(
+                "  Maintenance: enabled ({:.1} hr interval)",
+                config.robots.maintenance.interval_hours
+            );
         }
     }
 }
@@ -1477,9 +1604,7 @@ fn run_analyze(
     detailed: bool,
     _anomaly_threshold: f64,
 ) {
-    use waremax_analysis::{
-        RootCauseAnalyzer, AnalyzerInput, RCAReporter, ReportFormat,
-    };
+    use waremax_analysis::{AnalyzerInput, RCAReporter, ReportFormat, RootCauseAnalyzer};
     use waremax_core::SimTime;
 
     println!("Running Root Cause Analysis...");
@@ -1523,42 +1648,73 @@ fn run_analyze(
     let total_time = SimTime::from_seconds(report.duration_s);
 
     // Collect data for analysis
-    let attributions = world.attribution_collector.completed_attributions().to_vec();
+    let attributions = world
+        .attribution_collector
+        .completed_attributions()
+        .to_vec();
 
     // Collect congestion data from time series
-    let node_congestion: Vec<_> = world.time_series.node_congestion
+    let node_congestion: Vec<_> = world
+        .time_series
+        .node_congestion
         .iter()
-        .map(|(id, m)| (*id, m.congestion_score(), m.wait_event_count, m.total_wait_time_s))
+        .map(|(id, m)| {
+            (
+                *id,
+                m.congestion_score(),
+                m.wait_event_count,
+                m.total_wait_time_s,
+            )
+        })
         .collect();
 
-    let edge_congestion: Vec<_> = world.time_series.edge_congestion
+    let edge_congestion: Vec<_> = world
+        .time_series
+        .edge_congestion
         .iter()
-        .map(|(id, m)| (*id, m.congestion_score(), m.wait_event_count, m.total_wait_time_s))
+        .map(|(id, m)| {
+            (
+                *id,
+                m.congestion_score(),
+                m.wait_event_count,
+                m.total_wait_time_s,
+            )
+        })
         .collect();
 
     // Collect station data
-    let station_data: Vec<_> = world.stations
+    let station_data: Vec<_> = world
+        .stations
         .iter()
         .map(|(id, s)| {
             let ts_data = world.time_series.station_series.get(id);
             let avg_queue = ts_data.map(|d| d.avg_queue_length()).unwrap_or(0.0);
             let max_queue = ts_data.map(|d| d.max_queue_length()).unwrap_or(0);
-            (*id, s.string_id.clone(), s.utilization(total_time), avg_queue, max_queue)
+            (
+                *id,
+                s.string_id.clone(),
+                s.utilization(total_time),
+                avg_queue,
+                max_queue,
+            )
         })
         .collect();
 
     // Collect robot utilizations
-    let robot_utilizations: Vec<_> = world.robots
+    let robot_utilizations: Vec<_> = world
+        .robots
         .iter()
         .map(|(id, r)| (*id, r.utilization(total_time)))
         .collect();
 
     // Collect queue time series
-    let station_queue_series: Vec<_> = world.stations
+    let station_queue_series: Vec<_> = world
+        .stations
         .iter()
         .filter_map(|(id, s)| {
             world.time_series.station_series.get(id).map(|ts| {
-                let samples: Vec<_> = ts.queue_length
+                let samples: Vec<_> = ts
+                    .queue_length
                     .iter()
                     .map(|dp| (dp.time_s, dp.value))
                     .collect();
@@ -1573,7 +1729,7 @@ fn run_analyze(
         node_congestion,
         edge_congestion,
         station_data,
-        charging_data: Vec::new(),  // Can add if needed
+        charging_data: Vec::new(), // Can add if needed
         robot_utilizations,
         station_queue_series,
     };
@@ -1613,8 +1769,14 @@ fn run_analyze(
     println!("Analysis Summary:");
     println!("  Health Score: {:.0}/100", rca_report.summary.health_score);
     println!("  Orders Analyzed: {}", rca_report.summary.orders_analyzed);
-    println!("  Primary Issue: {}", rca_report.summary.primary_delay_source);
-    println!("  Bottlenecks Found: {}", rca_report.bottleneck_analysis.summary.total_count);
+    println!(
+        "  Primary Issue: {}",
+        rca_report.summary.primary_delay_source
+    );
+    println!(
+        "  Bottlenecks Found: {}",
+        rca_report.bottleneck_analysis.summary.total_count
+    );
     println!("  Anomalies Detected: {}", rca_report.summary.anomaly_count);
 }
 

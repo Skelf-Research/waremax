@@ -1,7 +1,7 @@
 //! Order entity
 
 use rkyv::{Archive, Deserialize, Serialize};
-use waremax_core::{OrderId, SkuId, SimTime};
+use waremax_core::{OrderId, SimTime, SkuId};
 
 /// A line item in an order
 #[derive(Archive, Deserialize, Serialize, Clone, Debug)]
@@ -45,7 +45,12 @@ pub struct Order {
 }
 
 impl Order {
-    pub fn new(id: OrderId, arrival_time: SimTime, lines: Vec<OrderLine>, due_time: Option<SimTime>) -> Self {
+    pub fn new(
+        id: OrderId,
+        arrival_time: SimTime,
+        lines: Vec<OrderLine>,
+        due_time: Option<SimTime>,
+    ) -> Self {
         let tasks_total = lines.len() as u32;
         Self {
             id,
@@ -72,7 +77,8 @@ impl Order {
     }
 
     pub fn is_late(&self, current_time: SimTime) -> bool {
-        self.due_time.map_or(false, |due| current_time > due && !self.is_complete())
+        self.due_time
+            .map_or(false, |due| current_time > due && !self.is_complete())
     }
 
     pub fn cycle_time(&self) -> Option<SimTime> {

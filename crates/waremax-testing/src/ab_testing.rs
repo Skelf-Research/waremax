@@ -3,13 +3,13 @@
 //! Provides ABTestRunner for comparing two configurations with
 //! Welch's t-test for statistical significance.
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use statrs::distribution::{StudentsT, ContinuousCDF};
+use statrs::distribution::{ContinuousCDF, StudentsT};
+use std::collections::HashMap;
 
-use waremax_config::ScenarioConfig;
-use crate::runner::{BatchRunner, RunResult};
 use crate::comparison::AggregatedStats;
+use crate::runner::{BatchRunner, RunResult};
+use waremax_config::ScenarioConfig;
 
 /// Configuration for an A/B test
 #[derive(Clone)]
@@ -90,7 +90,10 @@ pub enum ABConclusion {
     /// No statistically significant difference detected
     NoSignificantDifference,
     /// Mixed results - some metrics better, some worse
-    Mixed { better: Vec<String>, worse: Vec<String> },
+    Mixed {
+        better: Vec<String>,
+        worse: Vec<String>,
+    },
 }
 
 /// Result of an A/B test
@@ -113,24 +116,24 @@ pub struct ABTestResult {
 impl ABTestResult {
     /// Get metrics where variant is significantly better
     pub fn variant_wins(&self) -> Vec<&ABMetricComparison> {
-        self.comparisons.iter()
+        self.comparisons
+            .iter()
             .filter(|c| {
-                c.is_significant && (
-                    (c.higher_is_better && c.absolute_diff > 0.0) ||
-                    (!c.higher_is_better && c.absolute_diff < 0.0)
-                )
+                c.is_significant
+                    && ((c.higher_is_better && c.absolute_diff > 0.0)
+                        || (!c.higher_is_better && c.absolute_diff < 0.0))
             })
             .collect()
     }
 
     /// Get metrics where baseline is significantly better
     pub fn baseline_wins(&self) -> Vec<&ABMetricComparison> {
-        self.comparisons.iter()
+        self.comparisons
+            .iter()
             .filter(|c| {
-                c.is_significant && (
-                    (c.higher_is_better && c.absolute_diff < 0.0) ||
-                    (!c.higher_is_better && c.absolute_diff > 0.0)
-                )
+                c.is_significant
+                    && ((c.higher_is_better && c.absolute_diff < 0.0)
+                        || (!c.higher_is_better && c.absolute_diff > 0.0))
             })
             .collect()
     }
@@ -138,12 +141,19 @@ impl ABTestResult {
     /// Format the result as a human-readable string
     pub fn summary(&self) -> String {
         let mut output = String::new();
-        output.push_str(&format!("A/B Test Results (α={}, n={})\n", self.alpha, self.replications));
+        output.push_str(&format!(
+            "A/B Test Results (α={}, n={})\n",
+            self.alpha, self.replications
+        ));
         output.push_str(&"=".repeat(60));
         output.push('\n');
 
         for comparison in &self.comparisons {
-            let direction = if comparison.absolute_diff > 0.0 { "+" } else { "" };
+            let direction = if comparison.absolute_diff > 0.0 {
+                "+"
+            } else {
+                ""
+            };
             let sig_marker = if comparison.is_significant { "*" } else { "" };
             output.push_str(&format!(
                 "{}: {:.2} → {:.2} ({}{:.2}, {}{:.1}%){} p={:.4}\n",
@@ -186,7 +196,8 @@ impl ABTestRunner {
             .collect();
 
         // Run baseline scenarios
-        let baseline_scenarios: Vec<(String, ScenarioConfig)> = seeds.iter()
+        let baseline_scenarios: Vec<(String, ScenarioConfig)> = seeds
+            .iter()
             .map(|&seed| {
                 let mut config = self.config.baseline_config.clone();
                 config.seed = seed;
@@ -198,7 +209,8 @@ impl ABTestRunner {
         let baseline_results = baseline_runner.run();
 
         // Run variant scenarios
-        let variant_scenarios: Vec<(String, ScenarioConfig)> = seeds.iter()
+        let variant_scenarios: Vec<(String, ScenarioConfig)> = seeds
+            .iter()
             .map(|&seed| {
                 let mut config = self.config.variant_config.clone();
                 config.seed = seed;
@@ -234,7 +246,11 @@ impl ABTestRunner {
     }
 
     /// Extract metrics and compare them
-    fn extract_and_compare(&self, baseline: &[RunResult], variant: &[RunResult]) -> Vec<ABMetricComparison> {
+    fn extract_and_compare(
+        &self,
+        baseline: &[RunResult],
+        variant: &[RunResult],
+    ) -> Vec<ABMetricComparison> {
         let mut comparisons = Vec::new();
 
         // Throughput (higher is better)
@@ -258,7 +274,8 @@ impl ABTestRunner {
         ));
 
         // Robot Utilization (higher is better)
-        let baseline_robot_util: Vec<f64> = baseline.iter().map(|r| r.robot_utilization()).collect();
+        let baseline_robot_util: Vec<f64> =
+            baseline.iter().map(|r| r.robot_utilization()).collect();
         let variant_robot_util: Vec<f64> = variant.iter().map(|r| r.robot_utilization()).collect();
         comparisons.push(self.compare_metric(
             "Robot Utilization",
@@ -268,8 +285,10 @@ impl ABTestRunner {
         ));
 
         // Station Utilization (higher is better)
-        let baseline_station_util: Vec<f64> = baseline.iter().map(|r| r.station_utilization()).collect();
-        let variant_station_util: Vec<f64> = variant.iter().map(|r| r.station_utilization()).collect();
+        let baseline_station_util: Vec<f64> =
+            baseline.iter().map(|r| r.station_utilization()).collect();
+        let variant_station_util: Vec<f64> =
+            variant.iter().map(|r| r.station_utilization()).collect();
         comparisons.push(self.compare_metric(
             "Station Utilization",
             &baseline_station_util,
@@ -339,8 +358,12 @@ impl ABTestRunner {
 
         match (variant_better.is_empty(), baseline_better.is_empty()) {
             (true, true) => ABConclusion::NoSignificantDifference,
-            (false, true) => ABConclusion::VariantBetter { metrics: variant_better },
-            (true, false) => ABConclusion::BaselineBetter { metrics: baseline_better },
+            (false, true) => ABConclusion::VariantBetter {
+                metrics: variant_better,
+            },
+            (true, false) => ABConclusion::BaselineBetter {
+                metrics: baseline_better,
+            },
             (false, false) => ABConclusion::Mixed {
                 better: variant_better,
                 worse: baseline_better,
@@ -514,11 +537,11 @@ mod tests {
     #[test]
     fn test_required_sample_size() {
         let n = ABTestRunner::required_sample_size(
-            100.0,  // baseline mean
-            10.0,   // baseline std
-            0.10,   // 10% effect
-            0.05,   // alpha
-            0.80,   // power
+            100.0, // baseline mean
+            10.0,  // baseline std
+            0.10,  // 10% effect
+            0.05,  // alpha
+            0.80,  // power
         );
 
         // Should need reasonable sample size

@@ -4,17 +4,20 @@
 //! using rayon.
 
 use rayon::prelude::*;
-use std::time::Instant;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::time::Instant;
 
 use waremax_config::ScenarioConfig;
+use waremax_core::{EdgeId, NodeId, RobotId, StationId};
+use waremax_entities::{
+    BatteryConsumptionModel, ChargingStation, MaintenanceStation, Robot, ServiceTimeModel, Station,
+    StationType,
+};
+use waremax_map::{Edge, Node, NodeType, Router, TrafficManager, WarehouseMap};
 use waremax_metrics::SimulationReport;
-use waremax_sim::{SimulationRunner, World};
-use waremax_core::{NodeId, EdgeId, RobotId, StationId};
-use waremax_entities::{Robot, Station, StationType, ServiceTimeModel, ChargingStation, BatteryConsumptionModel, MaintenanceStation};
-use waremax_map::{WarehouseMap, Node, Edge, NodeType, Router, TrafficManager};
 use waremax_metrics::TimeSeriesCollector;
+use waremax_sim::{SimulationRunner, World};
 
 /// Result of a single simulation run
 #[derive(Clone)]
@@ -169,7 +172,9 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
     // The ScenarioBuilder puts "inline" in map.file when using inline generation
     let grid_size = if scenario.map.file == "inline" {
         // Try to infer from stations or use default
-        let max_station_node: u32 = scenario.stations.iter()
+        let max_station_node: u32 = scenario
+            .stations
+            .iter()
             .filter_map(|s| s.node.parse::<u32>().ok())
             .max()
             .unwrap_or(24);
@@ -187,7 +192,11 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
             let id = row * grid_size + col;
             let x = col as f64 * spacing;
             let y = row as f64 * spacing;
-            let node_type = if id == 0 { NodeType::StationPick } else { NodeType::Aisle };
+            let node_type = if id == 0 {
+                NodeType::StationPick
+            } else {
+                NodeType::Aisle
+            };
             let node = Node::new(NodeId(id), format!("N{}", id), x, y, node_type);
             map.add_node(node);
         }
@@ -199,16 +208,22 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
             let id = row * grid_size + col;
             if col < grid_size - 1 {
                 let neighbor = id + 1;
-                map.add_edge(
-                    Edge::new(EdgeId(edge_id), NodeId(id), NodeId(neighbor), spacing),
-                );
+                map.add_edge(Edge::new(
+                    EdgeId(edge_id),
+                    NodeId(id),
+                    NodeId(neighbor),
+                    spacing,
+                ));
                 edge_id += 1;
             }
             if row < grid_size - 1 {
                 let neighbor = id + grid_size;
-                map.add_edge(
-                    Edge::new(EdgeId(edge_id), NodeId(id), NodeId(neighbor), spacing),
-                );
+                map.add_edge(Edge::new(
+                    EdgeId(edge_id),
+                    NodeId(id),
+                    NodeId(neighbor),
+                    spacing,
+                ));
                 edge_id += 1;
             }
         }
@@ -280,9 +295,7 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
                 station_cfg.service_time_s.per_item,
                 station_cfg.service_time_s.per_item_stddev,
             ),
-            "exponential" => ServiceTimeModel::exponential(
-                station_cfg.service_time_s.base,
-            ),
+            "exponential" => ServiceTimeModel::exponential(station_cfg.service_time_s.base),
             "uniform" => ServiceTimeModel::uniform(
                 station_cfg.service_time_s.min_s,
                 station_cfg.service_time_s.max_s,
@@ -309,7 +322,10 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
 
     // Add charging stations
     for (idx, cfg) in scenario.charging_stations.iter().enumerate() {
-        let node_id: u32 = cfg.node.parse().unwrap_or((total_nodes - 1 - idx as u32) % total_nodes);
+        let node_id: u32 = cfg
+            .node
+            .parse()
+            .unwrap_or((total_nodes - 1 - idx as u32) % total_nodes);
         let station_id = world.next_charging_id();
         let mut station = ChargingStation::new(
             station_id,
@@ -326,7 +342,10 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
 
     // Add maintenance stations
     for (idx, cfg) in scenario.maintenance_stations.iter().enumerate() {
-        let node_id: u32 = cfg.node.parse().unwrap_or((total_nodes / 2 + idx as u32) % total_nodes);
+        let node_id: u32 = cfg
+            .node
+            .parse()
+            .unwrap_or((total_nodes / 2 + idx as u32) % total_nodes);
         let station_id = world.next_maintenance_id();
 
         let repair_time_model = match cfg.repair_time.distribution.as_str() {
@@ -354,10 +373,8 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
     }
 
     // Set up policies
-    world.policies = waremax_sim::create_policies_with_traffic(
-        &scenario.policies,
-        &scenario.traffic,
-    );
+    world.policies =
+        waremax_sim::create_policies_with_traffic(&scenario.policies, &scenario.traffic);
 
     // Set up distributions
     world.distributions = waremax_sim::create_distributions(&scenario.orders);
@@ -385,7 +402,11 @@ fn hash_config(config: &ScenarioConfig) -> u64 {
     // Hash key configuration values
     config.robots.count.hash(&mut hasher);
     config.stations.len().hash(&mut hasher);
-    config.simulation.duration_minutes.to_bits().hash(&mut hasher);
+    config
+        .simulation
+        .duration_minutes
+        .to_bits()
+        .hash(&mut hasher);
     config.policies.task_allocation.alloc_type.hash(&mut hasher);
 
     hasher.finish()
@@ -422,7 +443,8 @@ mod tests {
         let runner = BatchRunner::new(vec![
             ("seed1".to_string(), config1),
             ("seed2".to_string(), config2),
-        ]).parallelism(2);
+        ])
+        .parallelism(2);
 
         let results = runner.run();
         assert_eq!(results.len(), 2);

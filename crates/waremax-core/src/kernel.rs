@@ -3,7 +3,7 @@
 //! The kernel maintains a priority queue of events ordered by time,
 //! and advances simulation time by processing events in order.
 
-use crate::{SimTime, EventId, SimEvent, ScheduledEvent, IdGenerator};
+use crate::{EventId, IdGenerator, ScheduledEvent, SimEvent, SimTime};
 use std::collections::BinaryHeap;
 
 /// The discrete-event simulation kernel

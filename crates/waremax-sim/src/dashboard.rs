@@ -6,20 +6,17 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::mpsc::{self, Receiver, Sender};
 #[cfg(test)]
 use std::sync::mpsc::TryRecvError;
-use waremax_core::{RobotId, NodeId, StationId, TaskId, OrderId, SimTime};
+use std::sync::mpsc::{self, Receiver, Sender};
+use waremax_core::{NodeId, OrderId, RobotId, SimTime, StationId, TaskId};
 
 /// Dashboard event types that can be streamed to clients
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum DashboardEvent {
     /// Simulation tick with current time
-    Tick {
-        time_s: f64,
-        events_processed: u64,
-    },
+    Tick { time_s: f64, events_processed: u64 },
 
     /// Robot position update
     RobotMoved {
@@ -106,10 +103,7 @@ pub enum DashboardEvent {
     },
 
     /// Deadlock detected
-    DeadlockDetected {
-        robots: Vec<u32>,
-        time_s: f64,
-    },
+    DeadlockDetected { robots: Vec<u32>, time_s: f64 },
 
     /// Deadlock resolved
     DeadlockResolved {
@@ -310,12 +304,21 @@ impl DashboardHook {
         }
         if time_s - self.last_tick_s >= self.tick_interval_s {
             self.last_tick_s = time_s;
-            self.emit(DashboardEvent::Tick { time_s, events_processed });
+            self.emit(DashboardEvent::Tick {
+                time_s,
+                events_processed,
+            });
         }
     }
 
     /// Emit robot moved event
-    pub fn robot_moved(&self, robot_id: RobotId, from_node: NodeId, to_node: NodeId, time: SimTime) {
+    pub fn robot_moved(
+        &self,
+        robot_id: RobotId,
+        from_node: NodeId,
+        to_node: NodeId,
+        time: SimTime,
+    ) {
         if !self.event_filter.robot_moves {
             return;
         }
@@ -328,7 +331,13 @@ impl DashboardHook {
     }
 
     /// Emit robot state changed event
-    pub fn robot_state_changed(&self, robot_id: RobotId, old_state: &str, new_state: &str, time: SimTime) {
+    pub fn robot_state_changed(
+        &self,
+        robot_id: RobotId,
+        old_state: &str,
+        new_state: &str,
+        time: SimTime,
+    ) {
         if !self.event_filter.robot_state_changes {
             return;
         }
@@ -341,7 +350,13 @@ impl DashboardHook {
     }
 
     /// Emit task assigned event
-    pub fn task_assigned(&self, task_id: TaskId, robot_id: RobotId, station_id: StationId, time: SimTime) {
+    pub fn task_assigned(
+        &self,
+        task_id: TaskId,
+        robot_id: RobotId,
+        station_id: StationId,
+        time: SimTime,
+    ) {
         if !self.event_filter.task_events {
             return;
         }
@@ -378,7 +393,13 @@ impl DashboardHook {
     }
 
     /// Emit order completed event
-    pub fn order_completed(&self, order_id: OrderId, cycle_time_s: f64, on_time: bool, time: SimTime) {
+    pub fn order_completed(
+        &self,
+        order_id: OrderId,
+        cycle_time_s: f64,
+        on_time: bool,
+        time: SimTime,
+    ) {
         if !self.event_filter.order_events {
             return;
         }
@@ -391,7 +412,13 @@ impl DashboardHook {
     }
 
     /// Emit station queue update event
-    pub fn station_queue_update(&self, station_id: StationId, queue_length: u32, serving: u32, time: SimTime) {
+    pub fn station_queue_update(
+        &self,
+        station_id: StationId,
+        queue_length: u32,
+        serving: u32,
+        time: SimTime,
+    ) {
         if !self.event_filter.station_events {
             return;
         }
@@ -448,7 +475,12 @@ impl DashboardHook {
     }
 
     /// Emit simulation ended event
-    pub fn simulation_ended(&self, total_time_s: f64, orders_completed: u32, throughput_per_hour: f64) {
+    pub fn simulation_ended(
+        &self,
+        total_time_s: f64,
+        orders_completed: u32,
+        throughput_per_hour: f64,
+    ) {
         self.emit(DashboardEvent::SimulationEnded {
             total_time_s,
             orders_completed,
@@ -630,7 +662,12 @@ mod tests {
         let (mut hook, receiver) = DashboardHook::new();
 
         // With filter allowing moves
-        hook.robot_moved(RobotId(1), NodeId(10), NodeId(11), SimTime::from_seconds(1.0));
+        hook.robot_moved(
+            RobotId(1),
+            NodeId(10),
+            NodeId(11),
+            SimTime::from_seconds(1.0),
+        );
         assert!(receiver.try_recv().is_ok());
 
         // Disable robot moves
@@ -638,7 +675,12 @@ mod tests {
         filter.robot_moves = false;
         hook.set_filter(filter);
 
-        hook.robot_moved(RobotId(2), NodeId(20), NodeId(21), SimTime::from_seconds(2.0));
+        hook.robot_moved(
+            RobotId(2),
+            NodeId(20),
+            NodeId(21),
+            SimTime::from_seconds(2.0),
+        );
         assert!(matches!(receiver.try_recv(), Err(TryRecvError::Empty)));
     }
 
@@ -646,10 +688,22 @@ mod tests {
     fn test_event_buffer() {
         let mut buffer = DashboardEventBuffer::new(3);
 
-        buffer.push(DashboardEvent::Tick { time_s: 1.0, events_processed: 10 });
-        buffer.push(DashboardEvent::Tick { time_s: 2.0, events_processed: 20 });
-        buffer.push(DashboardEvent::Tick { time_s: 3.0, events_processed: 30 });
-        buffer.push(DashboardEvent::Tick { time_s: 4.0, events_processed: 40 });
+        buffer.push(DashboardEvent::Tick {
+            time_s: 1.0,
+            events_processed: 10,
+        });
+        buffer.push(DashboardEvent::Tick {
+            time_s: 2.0,
+            events_processed: 20,
+        });
+        buffer.push(DashboardEvent::Tick {
+            time_s: 3.0,
+            events_processed: 30,
+        });
+        buffer.push(DashboardEvent::Tick {
+            time_s: 4.0,
+            events_processed: 40,
+        });
 
         assert_eq!(buffer.len(), 3);
         // First event should have been dropped

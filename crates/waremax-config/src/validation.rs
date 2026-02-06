@@ -78,13 +78,26 @@ impl fmt::Display for ValidationError {
 #[derive(Debug, Clone)]
 pub enum ValidationErrorKind {
     // Cross-reference errors
-    NodeNotFound { node_id: String },
-    RackNotFound { rack_id: String },
+    NodeNotFound {
+        node_id: String,
+    },
+    RackNotFound {
+        rack_id: String,
+    },
 
     // Value errors
-    ValueMustBePositive { field: String, value: f64 },
-    ValueMustBeNonNegative { field: String, value: f64 },
-    IntValueMustBePositive { field: String, value: u32 },
+    ValueMustBePositive {
+        field: String,
+        value: f64,
+    },
+    ValueMustBeNonNegative {
+        field: String,
+        value: f64,
+    },
+    IntValueMustBePositive {
+        field: String,
+        value: u32,
+    },
 
     // Placement errors
     PlacementLevelOutOfBounds {
@@ -105,8 +118,13 @@ pub enum ValidationErrorKind {
     },
 
     // Consistency errors
-    DuplicateId { id: String, entity_type: String },
-    EmptyCollection { collection: String },
+    DuplicateId {
+        id: String,
+        entity_type: String,
+    },
+    EmptyCollection {
+        collection: String,
+    },
 }
 
 impl fmt::Display for ValidationErrorKind {
@@ -591,7 +609,12 @@ fn validate_cross_references(
                 )
                 .with_suggestion(format!(
                     "available nodes: {}",
-                    node_ids.iter().take(10).cloned().collect::<Vec<_>>().join(", ")
+                    node_ids
+                        .iter()
+                        .take(10)
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 )),
             );
         }
@@ -609,7 +632,12 @@ fn validate_cross_references(
                 )
                 .with_suggestion(format!(
                     "available nodes: {}",
-                    node_ids.iter().take(10).cloned().collect::<Vec<_>>().join(", ")
+                    node_ids
+                        .iter()
+                        .take(10)
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 )),
             );
         }
@@ -847,10 +875,9 @@ mod tests {
         validate_map_standalone(&map, &mut ctx);
 
         assert!(ctx.has_errors());
-        assert!(ctx
-            .errors
-            .iter()
-            .any(|e| matches!(&e.kind, ValidationErrorKind::NodeNotFound { node_id } if node_id == "N2")));
+        assert!(ctx.errors.iter().any(
+            |e| matches!(&e.kind, ValidationErrorKind::NodeNotFound { node_id } if node_id == "N2")
+        ));
     }
 
     #[test]
@@ -867,12 +894,15 @@ mod tests {
                 base_access_time_s: None,
                 per_level_time_s: None,
             }],
-            placements: [("SKU001".to_string(), vec![PlacementConfig {
-                rack: "R1".to_string(),
-                level: 5, // Out of bounds (max is 2)
-                bin: 0,
-                qty: 10,
-            }])]
+            placements: [(
+                "SKU001".to_string(),
+                vec![PlacementConfig {
+                    rack: "R1".to_string(),
+                    level: 5, // Out of bounds (max is 2)
+                    bin: 0,
+                    qty: 10,
+                }],
+            )]
             .into_iter()
             .collect(),
             skus: vec![],
@@ -893,8 +923,9 @@ mod tests {
         let result = validate_scenario(&scenario, Some(&map), Some(&storage));
         assert!(result.is_err());
         let errors = result.unwrap_err();
-        assert!(errors
-            .iter()
-            .any(|e| matches!(&e.kind, ValidationErrorKind::PlacementLevelOutOfBounds { .. })));
+        assert!(errors.iter().any(|e| matches!(
+            &e.kind,
+            ValidationErrorKind::PlacementLevelOutOfBounds { .. }
+        )));
     }
 }

@@ -1,10 +1,10 @@
 //! Destination policies for bin selection in putaway/replenishment tasks
 
-use waremax_core::{SkuId, NodeId, RackId};
-use waremax_storage::rack::BinAddress;
-use waremax_storage::inventory::Inventory;
-use waremax_map::WarehouseMap;
 use std::collections::HashMap;
+use waremax_core::{NodeId, RackId, SkuId};
+use waremax_map::WarehouseMap;
+use waremax_storage::inventory::Inventory;
+use waremax_storage::rack::BinAddress;
 
 /// Context for destination bin selection
 pub struct DestinationContext<'a> {
@@ -17,7 +17,12 @@ pub struct DestinationContext<'a> {
 /// Policy for selecting destination bins for putaway tasks
 pub trait DestinationPolicy: Send + Sync {
     /// Select a bin for storing the given SKU
-    fn select_bin(&self, ctx: &DestinationContext, sku_id: SkuId, quantity: u32) -> Option<BinAddress>;
+    fn select_bin(
+        &self,
+        ctx: &DestinationContext,
+        sku_id: SkuId,
+        quantity: u32,
+    ) -> Option<BinAddress>;
 
     /// Policy name for logging
     fn name(&self) -> &'static str;
@@ -39,7 +44,12 @@ impl Default for NearestEmptyBinPolicy {
 }
 
 impl DestinationPolicy for NearestEmptyBinPolicy {
-    fn select_bin(&self, ctx: &DestinationContext, _sku_id: SkuId, _quantity: u32) -> Option<BinAddress> {
+    fn select_bin(
+        &self,
+        ctx: &DestinationContext,
+        _sku_id: SkuId,
+        _quantity: u32,
+    ) -> Option<BinAddress> {
         // Find all empty bins and select the nearest one
         let empty_bins = ctx.inventory.get_empty_bins();
 
@@ -79,7 +89,10 @@ pub struct ConsolidateBinPolicy {
 
 impl ConsolidateBinPolicy {
     pub fn new(max_fill_ratio: f64, bin_capacity: u32) -> Self {
-        Self { max_fill_ratio, bin_capacity }
+        Self {
+            max_fill_ratio,
+            bin_capacity,
+        }
     }
 }
 
@@ -90,13 +103,19 @@ impl Default for ConsolidateBinPolicy {
 }
 
 impl DestinationPolicy for ConsolidateBinPolicy {
-    fn select_bin(&self, ctx: &DestinationContext, sku_id: SkuId, quantity: u32) -> Option<BinAddress> {
+    fn select_bin(
+        &self,
+        ctx: &DestinationContext,
+        sku_id: SkuId,
+        quantity: u32,
+    ) -> Option<BinAddress> {
         // First try to find a bin with the same SKU that has space
         for bin_addr in ctx.inventory.find_sku(sku_id) {
             if let Some(current_qty) = ctx.inventory.get_quantity(bin_addr) {
                 let fill_ratio = current_qty as f64 / self.bin_capacity as f64;
 
-                if fill_ratio < self.max_fill_ratio && (current_qty + quantity) <= self.bin_capacity {
+                if fill_ratio < self.max_fill_ratio && (current_qty + quantity) <= self.bin_capacity
+                {
                     return Some(bin_addr.clone());
                 }
             }

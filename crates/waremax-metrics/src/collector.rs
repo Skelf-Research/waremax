@@ -1,8 +1,8 @@
 //! Metrics collection
 
 use serde::{Deserialize, Serialize};
-use waremax_core::{SimTime, ScheduledEvent, RobotId, StationId};
 use std::collections::HashMap;
+use waremax_core::{RobotId, ScheduledEvent, SimTime, StationId};
 
 /// SLA (Service Level Agreement) metrics for order tracking
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -50,7 +50,8 @@ impl SLAMetrics {
 
     /// Average lateness in seconds (only for late orders)
     pub fn avg_lateness_s(&self) -> f64 {
-        let late_only: Vec<f64> = self.lateness_distribution
+        let late_only: Vec<f64> = self
+            .lateness_distribution
             .iter()
             .filter(|&&l| l > 0.0)
             .copied()
@@ -65,7 +66,8 @@ impl SLAMetrics {
 
     /// P95 lateness in seconds (95th percentile of late orders)
     pub fn p95_lateness_s(&self) -> f64 {
-        let mut late_only: Vec<f64> = self.lateness_distribution
+        let mut late_only: Vec<f64> = self
+            .lateness_distribution
             .iter()
             .filter(|&&l| l > 0.0)
             .copied()
@@ -77,7 +79,10 @@ impl SLAMetrics {
 
         late_only.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let idx = ((late_only.len() as f64) * 0.95) as usize;
-        late_only.get(idx.min(late_only.len() - 1)).copied().unwrap_or(0.0)
+        late_only
+            .get(idx.min(late_only.len() - 1))
+            .copied()
+            .unwrap_or(0.0)
     }
 
     /// Maximum lateness in seconds
@@ -91,7 +96,8 @@ impl SLAMetrics {
 
     /// Average earliness in seconds (only for on-time orders)
     pub fn avg_earliness_s(&self) -> f64 {
-        let early_only: Vec<f64> = self.lateness_distribution
+        let early_only: Vec<f64> = self
+            .lateness_distribution
             .iter()
             .filter(|&&l| l <= 0.0)
             .map(|&l| -l) // Convert to positive
@@ -189,11 +195,17 @@ impl MetricsCollector {
     }
 
     pub fn record_task_complete(&mut self, robot_id: RobotId) {
-        self.robot_stats.entry(robot_id).or_default().tasks_completed += 1;
+        self.robot_stats
+            .entry(robot_id)
+            .or_default()
+            .tasks_completed += 1;
     }
 
     pub fn record_station_service(&mut self, station_id: StationId) {
-        self.station_stats.entry(station_id).or_default().total_served += 1;
+        self.station_stats
+            .entry(station_id)
+            .or_default()
+            .total_served += 1;
     }
 
     pub fn record_queue_length(&mut self, station_id: StationId, time: SimTime, length: usize) {
@@ -216,7 +228,8 @@ impl MetricsCollector {
         if self.order_completion_times.is_empty() {
             0.0
         } else {
-            self.order_completion_times.iter().sum::<f64>() / self.order_completion_times.len() as f64
+            self.order_completion_times.iter().sum::<f64>()
+                / self.order_completion_times.len() as f64
         }
     }
 
@@ -227,7 +240,10 @@ impl MetricsCollector {
             let mut sorted = self.order_completion_times.clone();
             sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
             let idx = (sorted.len() as f64 * 0.95) as usize;
-            sorted.get(idx.min(sorted.len() - 1)).copied().unwrap_or(0.0)
+            sorted
+                .get(idx.min(sorted.len() - 1))
+                .copied()
+                .unwrap_or(0.0)
         }
     }
 

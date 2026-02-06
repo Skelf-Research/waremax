@@ -2,7 +2,7 @@
 
 use rkyv::{Archive, Deserialize, Serialize};
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
-use waremax_core::{RackId, NodeId};
+use waremax_core::{NodeId, RackId};
 
 /// A storage rack in the warehouse
 #[derive(Archive, Deserialize, Serialize, Clone, Debug)]
@@ -20,7 +20,13 @@ pub struct Rack {
 }
 
 impl Rack {
-    pub fn new(id: RackId, string_id: String, access_node: NodeId, levels: u32, bins_per_level: u32) -> Self {
+    pub fn new(
+        id: RackId,
+        string_id: String,
+        access_node: NodeId,
+        levels: u32,
+        bins_per_level: u32,
+    ) -> Self {
         Self {
             id,
             string_id,
@@ -57,7 +63,18 @@ impl Rack {
 }
 
 /// Address of a specific bin within a rack
-#[derive(Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(
+    Archive,
+    Deserialize,
+    Serialize,
+    SerdeDeserialize,
+    SerdeSerialize,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 pub struct BinAddress {
     pub rack_id: RackId,
     pub level: u32,
@@ -66,7 +83,11 @@ pub struct BinAddress {
 
 impl BinAddress {
     pub fn new(rack_id: RackId, level: u32, bin: u32) -> Self {
-        Self { rack_id, level, bin }
+        Self {
+            rack_id,
+            level,
+            bin,
+        }
     }
 }
 

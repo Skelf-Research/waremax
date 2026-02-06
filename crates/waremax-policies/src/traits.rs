@@ -1,9 +1,9 @@
 //! Policy trait definitions
 
-use waremax_core::{RobotId, TaskId, StationId, SimTime};
-use waremax_entities::{Robot, Task, Station, Order};
-use waremax_map::WarehouseMap;
 use std::collections::HashMap;
+use waremax_core::{RobotId, SimTime, StationId, TaskId};
+use waremax_entities::{Order, Robot, Station, Task};
+use waremax_map::WarehouseMap;
 
 /// Context provided to policies for decision-making
 pub struct PolicyContext<'a> {

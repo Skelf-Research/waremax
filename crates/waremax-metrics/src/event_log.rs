@@ -2,7 +2,7 @@
 //!
 //! v3: Store simulation events in a persistent database for replay
 
-use crate::trace::{TraceEntry, TraceDetails};
+use crate::trace::{TraceDetails, TraceEntry};
 use sled::{Db, Tree};
 use std::io;
 use std::path::Path;
@@ -43,10 +43,12 @@ impl EventLog {
         let db = sled::open(path)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
 
-        let events = db.open_tree("events")
+        let events = db
+            .open_tree("events")
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
 
-        let metadata = db.open_tree("metadata")
+        let metadata = db
+            .open_tree("metadata")
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
 
         // Get current event count from metadata
@@ -77,11 +79,12 @@ impl EventLog {
         let key = self.make_key(entry.timestamp, event_id);
 
         // Serialize event to JSON (could use rkyv for efficiency)
-        let value = serde_json::to_vec(entry)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let value =
+            serde_json::to_vec(entry).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         // Insert into database
-        self.events.insert(&key, value)
+        self.events
+            .insert(&key, value)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
 
         // Periodic flush
@@ -95,10 +98,12 @@ impl EventLog {
     /// Flush pending writes to disk
     pub fn flush(&self) -> io::Result<()> {
         // Update event count in metadata
-        self.metadata.insert("event_count", &self.event_count.to_be_bytes())
+        self.metadata
+            .insert("event_count", &self.event_count.to_be_bytes())
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
 
-        self.db.flush()
+        self.db
+            .flush()
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
 
         Ok(())
@@ -128,7 +133,8 @@ impl EventLog {
 
     /// Get metadata value
     pub fn get_metadata(&self, key: &str) -> io::Result<Option<String>> {
-        self.metadata.get(key)
+        self.metadata
+            .get(key)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?
             .map(|v| String::from_utf8(v.to_vec()))
             .transpose()
@@ -137,7 +143,8 @@ impl EventLog {
 
     /// Set metadata value
     pub fn set_metadata(&self, key: &str, value: &str) -> io::Result<()> {
-        self.metadata.insert(key, value.as_bytes())
+        self.metadata
+            .insert(key, value.as_bytes())
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
         Ok(())
     }
@@ -188,19 +195,13 @@ impl EventLogWriter {
     /// Create a new event log writer
     pub fn new(path: &Path) -> io::Result<Self> {
         let log = EventLog::open(path, EventLogConfig::default())?;
-        Ok(Self {
-            log,
-            enabled: true,
-        })
+        Ok(Self { log, enabled: true })
     }
 
     /// Create with custom config
     pub fn with_config(path: &Path, config: EventLogConfig) -> io::Result<Self> {
         let log = EventLog::open(path, config)?;
-        Ok(Self {
-            log,
-            enabled: true,
-        })
+        Ok(Self { log, enabled: true })
     }
 
     /// Enable or disable logging
@@ -209,7 +210,12 @@ impl EventLogWriter {
     }
 
     /// Record an event
-    pub fn record(&mut self, timestamp_s: f64, event_type: &str, details: TraceDetails) -> io::Result<()> {
+    pub fn record(
+        &mut self,
+        timestamp_s: f64,
+        event_type: &str,
+        details: TraceDetails,
+    ) -> io::Result<()> {
         if !self.enabled {
             return Ok(());
         }
@@ -236,7 +242,8 @@ impl EventLogWriter {
 
     /// Set simulation metadata
     pub fn set_simulation_info(&self, duration_s: f64, seed: u64) -> io::Result<()> {
-        self.log.set_metadata("duration_s", &duration_s.to_string())?;
+        self.log
+            .set_metadata("duration_s", &duration_s.to_string())?;
         self.log.set_metadata("seed", &seed.to_string())?;
         Ok(())
     }
@@ -265,16 +272,15 @@ impl EventLogReader {
 
     /// Get events in a time window
     pub fn get_events(&self, start_s: f64, end_s: f64) -> Vec<TraceEntry> {
-        self.log.iter_range(start_s, end_s)
+        self.log
+            .iter_range(start_s, end_s)
             .filter_map(|r| r.ok())
             .collect()
     }
 
     /// Get all events
     pub fn get_all_events(&self) -> Vec<TraceEntry> {
-        self.log.iter_all()
-            .filter_map(|r| r.ok())
-            .collect()
+        self.log.iter_all().filter_map(|r| r.ok()).collect()
     }
 
     /// Get event count
@@ -284,13 +290,19 @@ impl EventLogReader {
 
     /// Get simulation duration from metadata
     pub fn get_duration(&self) -> Option<f64> {
-        self.log.get_metadata("duration_s").ok().flatten()
+        self.log
+            .get_metadata("duration_s")
+            .ok()
+            .flatten()
             .and_then(|s| s.parse().ok())
     }
 
     /// Get simulation seed from metadata
     pub fn get_seed(&self) -> Option<u64> {
-        self.log.get_metadata("seed").ok().flatten()
+        self.log
+            .get_metadata("seed")
+            .ok()
+            .flatten()
             .and_then(|s| s.parse().ok())
     }
 }
@@ -308,9 +320,33 @@ mod tests {
         // Write some events
         {
             let mut writer = EventLogWriter::new(&path).unwrap();
-            writer.record(0.0, "start", TraceDetails::Generic { message: "test".to_string() }).unwrap();
-            writer.record(1.0, "tick", TraceDetails::Generic { message: "tick1".to_string() }).unwrap();
-            writer.record(2.0, "end", TraceDetails::Generic { message: "done".to_string() }).unwrap();
+            writer
+                .record(
+                    0.0,
+                    "start",
+                    TraceDetails::Generic {
+                        message: "test".to_string(),
+                    },
+                )
+                .unwrap();
+            writer
+                .record(
+                    1.0,
+                    "tick",
+                    TraceDetails::Generic {
+                        message: "tick1".to_string(),
+                    },
+                )
+                .unwrap();
+            writer
+                .record(
+                    2.0,
+                    "end",
+                    TraceDetails::Generic {
+                        message: "done".to_string(),
+                    },
+                )
+                .unwrap();
             writer.flush().unwrap();
             assert_eq!(writer.event_count(), 3);
         }

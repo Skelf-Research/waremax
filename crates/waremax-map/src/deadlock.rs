@@ -4,7 +4,7 @@
 //! circular wait conditions that would cause deadlocks.
 
 use std::collections::{HashMap, HashSet};
-use waremax_core::{RobotId, NodeId, EdgeId};
+use waremax_core::{EdgeId, NodeId, RobotId};
 
 /// Represents what a robot is waiting for
 #[derive(Clone, Debug)]
@@ -139,7 +139,9 @@ impl WaitForGraph {
 
                 // Continue DFS to see if blocker is also waiting
                 if self.waiting_for.contains_key(&blocker) {
-                    if let Some(cycle) = self.dfs_find_cycle(blocker, visited, path, path_set, start) {
+                    if let Some(cycle) =
+                        self.dfs_find_cycle(blocker, visited, path, path_set, start)
+                    {
                         return Some(cycle);
                     }
                 }

@@ -10,9 +10,17 @@ macro_rules! define_id {
     ($name:ident, $doc:expr) => {
         #[doc = $doc]
         #[derive(
-            Archive, Deserialize, Serialize,
-            SerdeDeserialize, SerdeSerialize,
-            Clone, Copy, PartialEq, Eq, Hash, Default
+            Archive,
+            Deserialize,
+            Serialize,
+            SerdeDeserialize,
+            SerdeSerialize,
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            Hash,
+            Default,
         )]
         #[rkyv(compare(PartialEq))]
         pub struct $name(pub u32);
@@ -67,9 +75,18 @@ define_id!(SkuId, "Unique identifier for a SKU");
 define_id!(OrderId, "Unique identifier for an order");
 define_id!(TaskId, "Unique identifier for a task");
 define_id!(EventId, "Unique identifier for a scheduled event");
-define_id!(ShipmentId, "Unique identifier for an inbound/outbound shipment");
-define_id!(ChargingStationId, "Unique identifier for a charging station");
-define_id!(MaintenanceStationId, "Unique identifier for a maintenance station");
+define_id!(
+    ShipmentId,
+    "Unique identifier for an inbound/outbound shipment"
+);
+define_id!(
+    ChargingStationId,
+    "Unique identifier for a charging station"
+);
+define_id!(
+    MaintenanceStationId,
+    "Unique identifier for a maintenance station"
+);
 
 /// ID generator for creating sequential IDs
 #[derive(Debug, Clone, Default)]

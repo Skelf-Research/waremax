@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use std::io;
 use std::path::Path;
 
+use crate::snapshot::{SnapshotManager, WorldSnapshot};
 use waremax_metrics::{EventLogReader, TraceEntry};
-use crate::snapshot::{WorldSnapshot, SnapshotManager};
 
 /// Replay playback state
 #[derive(Clone, Debug, PartialEq)]
@@ -47,7 +47,7 @@ impl From<&TraceEntry> for ReplayEvent {
         Self {
             time_s: entry.timestamp,
             event_type: entry.event_type.clone(),
-            robot_id: None,  // Could parse from details
+            robot_id: None, // Could parse from details
             node_id: None,
             station_id: None,
             task_id: None,
@@ -205,7 +205,8 @@ impl ReplayEngine {
         if let Some(ref reader) = self.event_reader {
             // Get next event after current time
             let events = reader.get_events(self.current_time_s, self.current_time_s + 3600.0);
-            if let Some(entry) = events.into_iter()
+            if let Some(entry) = events
+                .into_iter()
                 .find(|e| e.timestamp > self.current_time_s)
             {
                 self.current_time_s = entry.timestamp;
@@ -221,7 +222,8 @@ impl ReplayEngine {
     /// Get events in a time range
     pub fn get_events_in_range(&self, start_s: f64, end_s: f64) -> Vec<ReplayEvent> {
         if let Some(ref reader) = self.event_reader {
-            reader.get_events(start_s, end_s)
+            reader
+                .get_events(start_s, end_s)
                 .into_iter()
                 .map(|e| ReplayEvent::from(&e))
                 .collect()
@@ -249,7 +251,8 @@ impl ReplayEngine {
         if let Some(ref snap) = self.current_snapshot {
             for robot in snap.robots.values() {
                 // Parse state type (e.g., "Idle", "Moving { .. }")
-                let state_name = robot.state_type
+                let state_name = robot
+                    .state_type
                     .split_whitespace()
                     .next()
                     .unwrap_or(&robot.state_type)
@@ -262,7 +265,8 @@ impl ReplayEngine {
 
     /// Update current snapshot based on current time
     fn update_snapshot(&mut self) {
-        self.current_snapshot = self.snapshots
+        self.current_snapshot = self
+            .snapshots
             .find_at_or_before(self.current_time_s)
             .cloned();
     }
@@ -271,7 +275,11 @@ impl ReplayEngine {
     pub fn metadata(&self) -> ReplayMetadata {
         ReplayMetadata {
             duration_s: self.duration_s,
-            event_count: self.event_reader.as_ref().map(|r| r.event_count()).unwrap_or(0),
+            event_count: self
+                .event_reader
+                .as_ref()
+                .map(|r| r.event_count())
+                .unwrap_or(0),
             snapshot_count: self.snapshots.count(),
             seed: self.event_reader.as_ref().and_then(|r| r.get_seed()),
         }

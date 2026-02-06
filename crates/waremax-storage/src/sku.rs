@@ -2,8 +2,8 @@
 
 use rkyv::{Archive, Deserialize, Serialize};
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
-use waremax_core::SkuId;
 use std::collections::HashMap;
+use waremax_core::SkuId;
 
 /// SKU (Stock Keeping Unit) definition
 #[derive(Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug)]

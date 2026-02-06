@@ -1,17 +1,16 @@
 //! REST API handlers for simulation control
 
-use std::sync::Arc;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use std::sync::Arc;
 
 use crate::session::SessionManager;
 use crate::types::{
-    SessionConfig, SessionResponse, SpeedRequest, AddRobotRequest,
-    PresetInfo, ErrorResponse,
+    AddRobotRequest, ErrorResponse, PresetInfo, SessionConfig, SessionResponse, SpeedRequest,
 };
 
 /// Application state shared across handlers
@@ -31,11 +30,9 @@ pub async fn create_session(
                 session_id,
                 status: "created".to_string(),
             }),
-        ).into_response(),
-        Err(e) => (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse::new(e)),
-        ).into_response(),
+        )
+            .into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(ErrorResponse::new(e))).into_response(),
     }
 }
 
@@ -53,7 +50,8 @@ pub async fn get_session_map(
         None => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Session not found")),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -67,14 +65,23 @@ pub async fn start_session(
             let mut session = session.lock().await;
             session.touch();
             match session.start().await {
-                Ok(()) => (StatusCode::OK, Json(serde_json::json!({"status": "started"}))).into_response(),
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse::new(e))).into_response(),
+                Ok(()) => (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"status": "started"})),
+                )
+                    .into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse::new(e)),
+                )
+                    .into_response(),
             }
         }
         None => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Session not found")),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -88,14 +95,23 @@ pub async fn pause_session(
             let mut session = session.lock().await;
             session.touch();
             match session.pause().await {
-                Ok(()) => (StatusCode::OK, Json(serde_json::json!({"status": "paused"}))).into_response(),
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse::new(e))).into_response(),
+                Ok(()) => (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"status": "paused"})),
+                )
+                    .into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse::new(e)),
+                )
+                    .into_response(),
             }
         }
         None => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Session not found")),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -109,14 +125,23 @@ pub async fn resume_session(
             let mut session = session.lock().await;
             session.touch();
             match session.resume().await {
-                Ok(()) => (StatusCode::OK, Json(serde_json::json!({"status": "running"}))).into_response(),
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse::new(e))).into_response(),
+                Ok(()) => (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"status": "running"})),
+                )
+                    .into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse::new(e)),
+                )
+                    .into_response(),
             }
         }
         None => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Session not found")),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -131,14 +156,23 @@ pub async fn set_speed(
             let mut session = session.lock().await;
             session.touch();
             match session.set_speed(req.speed).await {
-                Ok(()) => (StatusCode::OK, Json(serde_json::json!({"speed": req.speed}))).into_response(),
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse::new(e))).into_response(),
+                Ok(()) => (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"speed": req.speed})),
+                )
+                    .into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse::new(e)),
+                )
+                    .into_response(),
             }
         }
         None => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Session not found")),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -152,14 +186,23 @@ pub async fn step_session(
             let mut session = session.lock().await;
             session.touch();
             match session.step().await {
-                Ok(()) => (StatusCode::OK, Json(serde_json::json!({"status": "stepped"}))).into_response(),
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse::new(e))).into_response(),
+                Ok(()) => (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"status": "stepped"})),
+                )
+                    .into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse::new(e)),
+                )
+                    .into_response(),
             }
         }
         None => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Session not found")),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -174,14 +217,23 @@ pub async fn add_robot(
             let mut session = session.lock().await;
             session.touch();
             match session.add_robot(req.node_id).await {
-                Ok(()) => (StatusCode::OK, Json(serde_json::json!({"status": "robot_added"}))).into_response(),
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse::new(e))).into_response(),
+                Ok(()) => (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"status": "robot_added"})),
+                )
+                    .into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse::new(e)),
+                )
+                    .into_response(),
             }
         }
         None => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Session not found")),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -195,14 +247,23 @@ pub async fn get_state(
             let mut session = session.lock().await;
             session.touch();
             match session.get_state().await {
-                Ok(()) => (StatusCode::OK, Json(serde_json::json!({"status": "state_requested"}))).into_response(),
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse::new(e))).into_response(),
+                Ok(()) => (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"status": "state_requested"})),
+                )
+                    .into_response(),
+                Err(e) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse::new(e)),
+                )
+                    .into_response(),
             }
         }
         None => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Session not found")),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -212,12 +273,17 @@ pub async fn delete_session(
     Path(session_id): Path<String>,
 ) -> impl IntoResponse {
     if state.session_manager.remove_session(&session_id).await {
-        (StatusCode::OK, Json(serde_json::json!({"status": "deleted"}))).into_response()
+        (
+            StatusCode::OK,
+            Json(serde_json::json!({"status": "deleted"})),
+        )
+            .into_response()
     } else {
         (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new("Session not found")),
-        ).into_response()
+        )
+            .into_response()
     }
 }
 

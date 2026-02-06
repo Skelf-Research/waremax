@@ -8,8 +8,10 @@ use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, Mutex, RwLock};
 use uuid::Uuid;
 
-use crate::simulation::{SimulationHandle, SimulationConfig, SimCommand, SimUpdate, spawn_simulation};
-use crate::types::{SessionConfig, MapData};
+use crate::simulation::{
+    spawn_simulation, SimCommand, SimUpdate, SimulationConfig, SimulationHandle,
+};
+use crate::types::{MapData, SessionConfig};
 
 /// A simulation session for a single user/browser tab
 pub struct Session {
@@ -69,7 +71,10 @@ impl Session {
 
     /// Send a control command
     pub async fn send_command(&self, cmd: SimCommand) -> Result<(), String> {
-        self.handle.send_command(cmd).await.map_err(|e| e.to_string())
+        self.handle
+            .send_command(cmd)
+            .await
+            .map_err(|e| e.to_string())
     }
 
     /// Start the simulation
@@ -89,7 +94,10 @@ impl Session {
 
     /// Set simulation speed
     pub async fn set_speed(&self, speed: f64) -> Result<(), String> {
-        self.handle.set_speed(speed).await.map_err(|e| e.to_string())
+        self.handle
+            .set_speed(speed)
+            .await
+            .map_err(|e| e.to_string())
     }
 
     /// Step one event
@@ -99,7 +107,10 @@ impl Session {
 
     /// Add a robot
     pub async fn add_robot(&self, node_id: Option<u32>) -> Result<(), String> {
-        self.handle.add_robot(node_id).await.map_err(|e| e.to_string())
+        self.handle
+            .add_robot(node_id)
+            .await
+            .map_err(|e| e.to_string())
     }
 
     /// Stop the simulation
@@ -211,7 +222,7 @@ impl Default for SessionManager {
     fn default() -> Self {
         Self::new(
             Duration::from_secs(30 * 60), // 30 minute timeout
-            100,                           // Max 100 concurrent sessions
+            100,                          // Max 100 concurrent sessions
         )
     }
 }

@@ -1,8 +1,8 @@
 //! Maintenance station entity for robot maintenance and repair
 
-use waremax_core::{MaintenanceStationId, NodeId, RobotId, SimTime, SimRng};
-use std::collections::VecDeque;
 use crate::station::ServiceTimeModel;
+use std::collections::VecDeque;
+use waremax_core::{MaintenanceStationId, NodeId, RobotId, SimRng, SimTime};
 
 /// A maintenance station in the warehouse for robot servicing and repair
 #[derive(Clone, Debug)]
@@ -90,7 +90,13 @@ impl MaintenanceStation {
 
     /// Start maintenance or repair for a robot (must have free bay)
     /// Returns the service duration if started
-    pub fn start_service(&mut self, robot: RobotId, start_time: SimTime, is_repair: bool, rng: &mut SimRng) -> Option<SimTime> {
+    pub fn start_service(
+        &mut self,
+        robot: RobotId,
+        start_time: SimTime,
+        is_repair: bool,
+        rng: &mut SimRng,
+    ) -> Option<SimTime> {
         if self.has_free_bay() {
             // Remove from queue if present
             self.queue.retain(|&r| r != robot);

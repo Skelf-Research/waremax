@@ -1,8 +1,8 @@
 //! Task allocation policies
 
-use crate::traits::{TaskAllocationPolicy, PolicyContext};
-use waremax_core::{RobotId, TaskId};
+use crate::traits::{PolicyContext, TaskAllocationPolicy};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use waremax_core::{RobotId, TaskId};
 
 /// Allocate tasks to the nearest idle robot
 pub struct NearestRobotPolicy;
@@ -67,9 +67,7 @@ impl Default for RoundRobinPolicy {
 
 impl TaskAllocationPolicy for RoundRobinPolicy {
     fn allocate(&self, ctx: &PolicyContext, _task_id: TaskId) -> Option<RobotId> {
-        let mut available: Vec<_> = ctx.robots.values()
-            .filter(|r| r.is_available())
-            .collect();
+        let mut available: Vec<_> = ctx.robots.values().filter(|r| r.is_available()).collect();
 
         if available.is_empty() {
             return None;
@@ -158,7 +156,8 @@ impl TaskAllocationPolicy for AuctionPolicy {
                 let queue_size = r.task_queue.len() as f64;
 
                 // Calculate bid: weighted sum of distance and queue
-                let bid = (travel_dist * self.travel_weight) + (queue_size * self.queue_weight * 100.0);
+                let bid =
+                    (travel_dist * self.travel_weight) + (queue_size * self.queue_weight * 100.0);
                 (r.id, bid)
             })
             .collect();
@@ -226,14 +225,19 @@ impl TaskAllocationPolicy for WorkloadBalancedPolicy {
 
         // Find max workload across fleet if this task were assigned to each robot
         // Select robot that minimizes the max workload
-        let max_current: f64 = candidates.iter().map(|(_, _, cur)| *cur).fold(0.0, f64::max);
+        let max_current: f64 = candidates
+            .iter()
+            .map(|(_, _, cur)| *cur)
+            .fold(0.0, f64::max);
 
         candidates.sort_by(|a, b| {
             // Primary: minimize new workload
             // Secondary: prefer robot that increases fleet imbalance the least
             let a_impact = a.1 - max_current;
             let b_impact = b.1 - max_current;
-            a_impact.partial_cmp(&b_impact).unwrap_or(std::cmp::Ordering::Equal)
+            a_impact
+                .partial_cmp(&b_impact)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         candidates.first().map(|(id, _, _)| *id)
@@ -247,11 +251,11 @@ impl TaskAllocationPolicy for WorkloadBalancedPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use waremax_core::{NodeId, OrderId, StationId, SimTime};
-    use waremax_entities::{Robot, Task, BinLocation, Station, Order};
+    use std::collections::HashMap;
+    use waremax_core::{NodeId, OrderId, SimTime, StationId};
+    use waremax_entities::{BinLocation, Order, Robot, Station, Task};
     use waremax_map::WarehouseMap;
     use waremax_storage::BinAddress;
-    use std::collections::HashMap;
 
     fn test_context<'a>(
         map: &'a WarehouseMap,

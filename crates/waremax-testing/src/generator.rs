@@ -4,12 +4,11 @@
 //! SweepGenerator for parameter sweeps.
 
 use waremax_config::{
-    ScenarioConfig, SimulationParams, MapRef, StorageRef, RobotConfig, StationConfig,
-    OrderConfig, PolicyConfig, TrafficConfig, RoutingConfig, MetricsConfig,
-    BatteryConfig, ConsumptionConfig, RobotMaintenanceConfig, FailureConfig,
-    MaintenanceStationConfig, ChargingStationConfig, ServiceTimeConfig,
-    ArrivalProcess, LinesConfig, SkuPopularity, DueTimeConfig,
-    TaskAllocationConfig, StationAssignmentConfig, BatchingConfig, PriorityConfig,
+    ArrivalProcess, BatchingConfig, BatteryConfig, ChargingStationConfig, ConsumptionConfig,
+    DueTimeConfig, FailureConfig, LinesConfig, MaintenanceStationConfig, MapRef, MetricsConfig,
+    OrderConfig, PolicyConfig, PriorityConfig, RobotConfig, RobotMaintenanceConfig, RoutingConfig,
+    ScenarioConfig, ServiceTimeConfig, SimulationParams, SkuPopularity, StationAssignmentConfig,
+    StationConfig, StorageRef, TaskAllocationConfig, TrafficConfig,
 };
 
 /// Builder for creating ScenarioConfig programmatically
@@ -385,10 +384,7 @@ impl ScenarioBuilder {
                         0.0,
                     )
                 } else {
-                    ServiceTimeConfig::constant(
-                        self.service_time_base,
-                        self.service_time_per_item,
-                    )
+                    ServiceTimeConfig::constant(self.service_time_base, self.service_time_per_item)
                 },
             });
         }
@@ -585,32 +581,36 @@ impl SweepGenerator {
 
     /// Sweep over robot counts
     pub fn sweep_robot_count(mut self, values: &[u32]) -> Self {
-        self.dimensions.push(SweepDimension::RobotCount(values.to_vec()));
+        self.dimensions
+            .push(SweepDimension::RobotCount(values.to_vec()));
         self
     }
 
     /// Sweep over order rates (per hour)
     pub fn sweep_order_rate(mut self, values: &[f64]) -> Self {
-        self.dimensions.push(SweepDimension::OrderRate(values.to_vec()));
+        self.dimensions
+            .push(SweepDimension::OrderRate(values.to_vec()));
         self
     }
 
     /// Sweep over station counts
     pub fn sweep_station_count(mut self, values: &[u32]) -> Self {
-        self.dimensions.push(SweepDimension::StationCount(values.to_vec()));
+        self.dimensions
+            .push(SweepDimension::StationCount(values.to_vec()));
         self
     }
 
     /// Sweep over grid sizes (square grids)
     pub fn sweep_grid_size(mut self, values: &[u32]) -> Self {
-        self.dimensions.push(SweepDimension::GridSize(values.to_vec()));
+        self.dimensions
+            .push(SweepDimension::GridSize(values.to_vec()));
         self
     }
 
     /// Sweep over task allocation policies
     pub fn sweep_task_allocation(mut self, policies: &[&str]) -> Self {
         self.dimensions.push(SweepDimension::TaskAllocationPolicy(
-            policies.iter().map(|s| s.to_string()).collect()
+            policies.iter().map(|s| s.to_string()).collect(),
         ));
         self
     }
@@ -685,7 +685,10 @@ impl SweepGenerator {
                             new_results.push((new_labels, builder.clone().seed(v)));
                         }
                     }
-                    SweepDimension::Custom { name, applicator: _ } => {
+                    SweepDimension::Custom {
+                        name,
+                        applicator: _,
+                    } => {
                         // For custom sweeps, we'd need the values stored differently
                         // For now, skip custom dimensions in factorial generation
                         let mut new_labels = labels.clone();
@@ -699,14 +702,22 @@ impl SweepGenerator {
         }
 
         // Convert to final format with combined labels
-        results.into_iter().map(|(labels, builder)| {
-            let label = labels.into_iter()
-                .map(|(k, v)| format!("{}={}", k, v))
-                .collect::<Vec<_>>()
-                .join("_");
-            let label = if label.is_empty() { "base".to_string() } else { label };
-            (label, builder.build())
-        }).collect()
+        results
+            .into_iter()
+            .map(|(labels, builder)| {
+                let label = labels
+                    .into_iter()
+                    .map(|(k, v)| format!("{}={}", k, v))
+                    .collect::<Vec<_>>()
+                    .join("_");
+                let label = if label.is_empty() {
+                    "base".to_string()
+                } else {
+                    label
+                };
+                (label, builder.build())
+            })
+            .collect()
     }
 
     /// Get the number of scenarios that will be generated
@@ -715,8 +726,9 @@ impl SweepGenerator {
             return 1;
         }
 
-        self.dimensions.iter().map(|dim| {
-            match dim {
+        self.dimensions
+            .iter()
+            .map(|dim| match dim {
                 SweepDimension::RobotCount(v) => v.len(),
                 SweepDimension::OrderRate(v) => v.len(),
                 SweepDimension::StationCount(v) => v.len(),
@@ -724,8 +736,8 @@ impl SweepGenerator {
                 SweepDimension::TaskAllocationPolicy(v) => v.len(),
                 SweepDimension::Seed(v) => v.len(),
                 SweepDimension::Custom { .. } => 1,
-            }
-        }).product()
+            })
+            .product()
     }
 }
 
@@ -763,8 +775,7 @@ mod tests {
     #[test]
     fn test_sweep_generator_single_dimension() {
         let base = ScenarioBuilder::new();
-        let sweep = SweepGenerator::new(base)
-            .sweep_robot_count(&[5, 10, 15]);
+        let sweep = SweepGenerator::new(base).sweep_robot_count(&[5, 10, 15]);
 
         let scenarios = sweep.generate();
         assert_eq!(scenarios.len(), 3);

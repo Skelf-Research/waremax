@@ -2,13 +2,13 @@
 //!
 //! v3: Generate interactive HTML reports from simulation data
 
+use crate::charts::{ChartConfig, ChartGenerator};
 use crate::report::SimulationReport;
 use crate::timeseries::TimeSeriesCollector;
-use crate::charts::{ChartGenerator, ChartConfig};
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use tera::{Tera, Context};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use std::io;
 use std::path::Path;
+use tera::{Context, Tera};
 
 /// HTML report generator
 pub struct HtmlReportGenerator {
@@ -58,18 +58,36 @@ impl HtmlReportGenerator {
         context.insert("events_processed", &report.events_processed);
         context.insert("orders_completed", &report.orders_completed);
         context.insert("orders_late", &report.orders_late);
-        context.insert("throughput_per_hour", &format!("{:.1}", report.throughput_per_hour));
-        context.insert("avg_cycle_time_s", &format!("{:.1}", report.avg_cycle_time_s));
-        context.insert("p95_cycle_time_s", &format!("{:.1}", report.p95_cycle_time_s));
-        context.insert("robot_utilization", &format!("{:.1}", report.robot_utilization * 100.0));
-        context.insert("station_utilization", &format!("{:.1}", report.station_utilization * 100.0));
+        context.insert(
+            "throughput_per_hour",
+            &format!("{:.1}", report.throughput_per_hour),
+        );
+        context.insert(
+            "avg_cycle_time_s",
+            &format!("{:.1}", report.avg_cycle_time_s),
+        );
+        context.insert(
+            "p95_cycle_time_s",
+            &format!("{:.1}", report.p95_cycle_time_s),
+        );
+        context.insert(
+            "robot_utilization",
+            &format!("{:.1}", report.robot_utilization * 100.0),
+        );
+        context.insert(
+            "station_utilization",
+            &format!("{:.1}", report.station_utilization * 100.0),
+        );
 
         // SLA section
         if let Some(ref sla) = report.sla {
             context.insert("has_sla", &true);
             context.insert("sla_on_time", &sla.orders_on_time);
             context.insert("sla_late", &sla.orders_late);
-            context.insert("sla_miss_rate", &format!("{:.1}", sla.sla_miss_rate * 100.0));
+            context.insert(
+                "sla_miss_rate",
+                &format!("{:.1}", sla.sla_miss_rate * 100.0),
+            );
             context.insert("sla_avg_lateness", &format!("{:.1}", sla.avg_lateness_s));
         } else {
             context.insert("has_sla", &false);
@@ -80,8 +98,14 @@ impl HtmlReportGenerator {
             context.insert("has_congestion", &true);
             context.insert("congestion_node_events", &congestion.total_node_wait_events);
             context.insert("congestion_edge_events", &congestion.total_edge_wait_events);
-            context.insert("congestion_node_time", &format!("{:.1}", congestion.total_node_wait_time_s));
-            context.insert("congestion_edge_time", &format!("{:.1}", congestion.total_edge_wait_time_s));
+            context.insert(
+                "congestion_node_time",
+                &format!("{:.1}", congestion.total_node_wait_time_s),
+            );
+            context.insert(
+                "congestion_edge_time",
+                &format!("{:.1}", congestion.total_edge_wait_time_s),
+            );
         } else {
             context.insert("has_congestion", &false);
         }
@@ -90,8 +114,14 @@ impl HtmlReportGenerator {
         if let Some(ref battery) = report.battery {
             context.insert("has_battery", &true);
             context.insert("battery_events", &battery.total_charging_events);
-            context.insert("battery_energy", &format!("{:.1}", battery.total_energy_consumed_wh));
-            context.insert("battery_charge_time", &format!("{:.1}", battery.total_charging_time_s));
+            context.insert(
+                "battery_energy",
+                &format!("{:.1}", battery.total_energy_consumed_wh),
+            );
+            context.insert(
+                "battery_charge_time",
+                &format!("{:.1}", battery.total_charging_time_s),
+            );
         } else {
             context.insert("has_battery", &false);
         }
@@ -99,15 +129,18 @@ impl HtmlReportGenerator {
         // Robot reports
         if let Some(ref robots) = report.robot_reports {
             context.insert("has_robots", &true);
-            let robot_data: Vec<_> = robots.iter().map(|r| {
-                serde_json::json!({
-                    "id": r.robot_id,
-                    "tasks": r.tasks_completed,
-                    "distance": format!("{:.0}", r.distance_traveled_m),
-                    "utilization": format!("{:.1}", r.utilization * 100.0),
-                    "failures": r.failure_count,
+            let robot_data: Vec<_> = robots
+                .iter()
+                .map(|r| {
+                    serde_json::json!({
+                        "id": r.robot_id,
+                        "tasks": r.tasks_completed,
+                        "distance": format!("{:.0}", r.distance_traveled_m),
+                        "utilization": format!("{:.1}", r.utilization * 100.0),
+                        "failures": r.failure_count,
+                    })
                 })
-            }).collect();
+                .collect();
             context.insert("robots", &robot_data);
         } else {
             context.insert("has_robots", &false);
@@ -116,15 +149,18 @@ impl HtmlReportGenerator {
         // Station reports
         if let Some(ref stations) = report.station_reports {
             context.insert("has_stations", &true);
-            let station_data: Vec<_> = stations.iter().map(|s| {
-                serde_json::json!({
-                    "id": s.string_id,
-                    "type": s.station_type,
-                    "served": s.orders_served,
-                    "avg_queue": format!("{:.1}", s.avg_queue_length),
-                    "utilization": format!("{:.1}", s.utilization * 100.0),
+            let station_data: Vec<_> = stations
+                .iter()
+                .map(|s| {
+                    serde_json::json!({
+                        "id": s.string_id,
+                        "type": s.station_type,
+                        "served": s.orders_served,
+                        "avg_queue": format!("{:.1}", s.avg_queue_length),
+                        "utilization": format!("{:.1}", s.utilization * 100.0),
+                    })
                 })
-            }).collect();
+                .collect();
             context.insert("stations", &station_data);
         } else {
             context.insert("has_stations", &false);
@@ -136,10 +172,17 @@ impl HtmlReportGenerator {
 
             // Generate robot utilization chart data for inline Chart.js
             if let Some(ref robots) = report.robot_reports {
-                let labels: Vec<String> = robots.iter().map(|r| format!("R{}", r.robot_id)).collect();
+                let labels: Vec<String> =
+                    robots.iter().map(|r| format!("R{}", r.robot_id)).collect();
                 let values: Vec<f64> = robots.iter().map(|r| r.utilization * 100.0).collect();
-                context.insert("robot_chart_labels", &serde_json::to_string(&labels).unwrap_or_default());
-                context.insert("robot_chart_data", &serde_json::to_string(&values).unwrap_or_default());
+                context.insert(
+                    "robot_chart_labels",
+                    &serde_json::to_string(&labels).unwrap_or_default(),
+                );
+                context.insert(
+                    "robot_chart_data",
+                    &serde_json::to_string(&values).unwrap_or_default(),
+                );
                 context.insert("has_robot_chart", &true);
             } else {
                 context.insert("has_robot_chart", &false);
@@ -149,8 +192,14 @@ impl HtmlReportGenerator {
             if let Some(ref stations) = report.station_reports {
                 let labels: Vec<String> = stations.iter().map(|s| s.string_id.clone()).collect();
                 let values: Vec<f64> = stations.iter().map(|s| s.utilization * 100.0).collect();
-                context.insert("station_chart_labels", &serde_json::to_string(&labels).unwrap_or_default());
-                context.insert("station_chart_data", &serde_json::to_string(&values).unwrap_or_default());
+                context.insert(
+                    "station_chart_labels",
+                    &serde_json::to_string(&labels).unwrap_or_default(),
+                );
+                context.insert(
+                    "station_chart_data",
+                    &serde_json::to_string(&values).unwrap_or_default(),
+                );
                 context.insert("has_station_chart", &true);
             } else {
                 context.insert("has_station_chart", &false);
@@ -165,8 +214,10 @@ impl HtmlReportGenerator {
                     let colors = ["#3498db", "#e74c3c", "#2ecc71", "#9b59b6", "#f1c40f"];
 
                     for (idx, (station_id, data)) in station_data.iter().enumerate() {
-                        let times: Vec<f64> = data.queue_length.iter().map(|p| p.time_s / 60.0).collect();
-                        let values: Vec<usize> = data.queue_length.iter().map(|p| p.value).collect();
+                        let times: Vec<f64> =
+                            data.queue_length.iter().map(|p| p.time_s / 60.0).collect();
+                        let values: Vec<usize> =
+                            data.queue_length.iter().map(|p| p.value).collect();
                         all_times.extend(times.clone());
 
                         datasets.push(serde_json::json!({
@@ -177,8 +228,14 @@ impl HtmlReportGenerator {
                         }));
                     }
 
-                    context.insert("queue_chart_labels", &serde_json::to_string(&all_times).unwrap_or_default());
-                    context.insert("queue_chart_datasets", &serde_json::to_string(&datasets).unwrap_or_default());
+                    context.insert(
+                        "queue_chart_labels",
+                        &serde_json::to_string(&all_times).unwrap_or_default(),
+                    );
+                    context.insert(
+                        "queue_chart_datasets",
+                        &serde_json::to_string(&datasets).unwrap_or_default(),
+                    );
                     context.insert("has_queue_chart", &true);
                 } else {
                     context.insert("has_queue_chart", &false);

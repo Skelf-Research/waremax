@@ -1,7 +1,7 @@
 //! Map configuration parsing
 
-use serde::{Deserialize, Serialize};
 use super::scenario::ConfigError;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MapConfig {

@@ -1,7 +1,7 @@
 //! Priority arbitration policies
 
-use crate::traits::{PriorityPolicy, PolicyContext};
-use waremax_core::{TaskId, SimTime};
+use crate::traits::{PolicyContext, PriorityPolicy};
+use waremax_core::{SimTime, TaskId};
 use waremax_entities::TaskType;
 
 /// Strict priority: pick > replen > putaway
@@ -14,9 +14,9 @@ impl StrictPriorityPolicy {
 
     fn task_priority(task_type: &TaskType) -> u32 {
         match task_type {
-            TaskType::Pick => 0,           // Highest
+            TaskType::Pick => 0, // Highest
             TaskType::Replenishment => 1,
-            TaskType::Putaway => 2,        // Lowest
+            TaskType::Putaway => 2, // Lowest
         }
     }
 }
@@ -60,9 +60,19 @@ impl Default for FifoPolicy {
 impl PriorityPolicy for FifoPolicy {
     fn prioritize(&self, ctx: &PolicyContext, tasks: &mut [TaskId]) {
         tasks.sort_by(|a, b| {
-            let time_a = ctx.tasks.get(a).map(|t| t.created_at).unwrap_or(SimTime::MAX);
-            let time_b = ctx.tasks.get(b).map(|t| t.created_at).unwrap_or(SimTime::MAX);
-            time_a.partial_cmp(&time_b).unwrap_or(std::cmp::Ordering::Equal)
+            let time_a = ctx
+                .tasks
+                .get(a)
+                .map(|t| t.created_at)
+                .unwrap_or(SimTime::MAX);
+            let time_b = ctx
+                .tasks
+                .get(b)
+                .map(|t| t.created_at)
+                .unwrap_or(SimTime::MAX);
+            time_a
+                .partial_cmp(&time_b)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
     }
 
@@ -89,17 +99,23 @@ impl Default for DueTimePolicy {
 impl PriorityPolicy for DueTimePolicy {
     fn prioritize(&self, ctx: &PolicyContext, tasks: &mut [TaskId]) {
         tasks.sort_by(|a, b| {
-            let due_a = ctx.tasks.get(a)
+            let due_a = ctx
+                .tasks
+                .get(a)
                 .and_then(|t| t.order_id)
                 .and_then(|oid| ctx.orders.get(&oid))
                 .and_then(|o| o.due_time)
                 .unwrap_or(SimTime::MAX);
-            let due_b = ctx.tasks.get(b)
+            let due_b = ctx
+                .tasks
+                .get(b)
                 .and_then(|t| t.order_id)
                 .and_then(|oid| ctx.orders.get(&oid))
                 .and_then(|o| o.due_time)
                 .unwrap_or(SimTime::MAX);
-            due_a.partial_cmp(&due_b).unwrap_or(std::cmp::Ordering::Equal)
+            due_a
+                .partial_cmp(&due_b)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
     }
 
@@ -152,15 +168,23 @@ impl PriorityPolicy for WeightedFairPolicy {
         // Sort by virtual timestamp: creation_time * weight
         // Lower virtual timestamp = higher priority
         tasks.sort_by(|a, b| {
-            let vt_a = ctx.tasks.get(a).map(|t| {
-                let weight = self.task_weight(&t.task_type);
-                t.created_at.as_seconds() * weight as f64
-            }).unwrap_or(f64::MAX);
+            let vt_a = ctx
+                .tasks
+                .get(a)
+                .map(|t| {
+                    let weight = self.task_weight(&t.task_type);
+                    t.created_at.as_seconds() * weight as f64
+                })
+                .unwrap_or(f64::MAX);
 
-            let vt_b = ctx.tasks.get(b).map(|t| {
-                let weight = self.task_weight(&t.task_type);
-                t.created_at.as_seconds() * weight as f64
-            }).unwrap_or(f64::MAX);
+            let vt_b = ctx
+                .tasks
+                .get(b)
+                .map(|t| {
+                    let weight = self.task_weight(&t.task_type);
+                    t.created_at.as_seconds() * weight as f64
+                })
+                .unwrap_or(f64::MAX);
 
             vt_a.partial_cmp(&vt_b).unwrap_or(std::cmp::Ordering::Equal)
         });
@@ -174,11 +198,11 @@ impl PriorityPolicy for WeightedFairPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
     use waremax_core::{NodeId, OrderId, RobotId, StationId};
-    use waremax_entities::{Robot, Task, BinLocation, Station, Order, OrderLine};
+    use waremax_entities::{BinLocation, Order, OrderLine, Robot, Station, Task};
     use waremax_map::WarehouseMap;
     use waremax_storage::BinAddress;
-    use std::collections::HashMap;
 
     fn test_context<'a>(
         map: &'a WarehouseMap,
@@ -248,7 +272,7 @@ mod tests {
 
         let mut orders = HashMap::new();
         orders.insert(OrderId(0), make_order_with_due(0, 300.0)); // Due at 5 min
-        orders.insert(OrderId(1), make_order_with_due(1, 60.0));  // Due at 1 min (earliest)
+        orders.insert(OrderId(1), make_order_with_due(1, 60.0)); // Due at 1 min (earliest)
         orders.insert(OrderId(2), make_order_with_due(2, 180.0)); // Due at 3 min
 
         let mut tasks = HashMap::new();

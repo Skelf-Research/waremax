@@ -1,17 +1,17 @@
 //! Web server setup for the simulation UI
 
+use axum::{
+    routing::{delete, get, post},
+    Router,
+};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
-use axum::{
-    routing::{get, post, delete},
-    Router,
-};
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::handlers::api::{self, AppState};
-use crate::handlers::{websocket, static_files};
-use crate::session::{SessionManager, start_cleanup_task};
+use crate::handlers::{static_files, websocket};
+use crate::session::{start_cleanup_task, SessionManager};
 
 /// Server configuration
 #[derive(Clone, Debug)]
@@ -61,8 +61,7 @@ fn create_router(state: Arc<AppState>) -> Router {
         .route("/session/:id/state", get(api::get_state));
 
     // WebSocket route
-    let ws_routes = Router::new()
-        .route("/:id", get(websocket::websocket_handler));
+    let ws_routes = Router::new().route("/:id", get(websocket::websocket_handler));
 
     // Combine all routes
     Router::new()

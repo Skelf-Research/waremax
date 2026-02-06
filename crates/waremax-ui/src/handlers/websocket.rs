@@ -1,6 +1,5 @@
 //! WebSocket handler for real-time simulation updates
 
-use std::sync::Arc;
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -9,6 +8,7 @@ use axum::{
     response::IntoResponse,
 };
 use futures::{SinkExt, StreamExt};
+use std::sync::Arc;
 
 use crate::handlers::api::AppState;
 use crate::simulation::SimUpdate;
@@ -36,7 +36,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, session_id: Stri
                     serde_json::to_string(&WebSocketMessage::Error {
                         message: "Session not found".to_string(),
                     })
-                    .unwrap().into(),
+                    .unwrap()
+                    .into(),
                 ))
                 .await;
             return;
@@ -49,7 +50,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, session_id: Stri
             serde_json::to_string(&WebSocketMessage::Connected {
                 session_id: session_id.clone(),
             })
-            .unwrap().into(),
+            .unwrap()
+            .into(),
         ))
         .await;
 
@@ -64,27 +66,47 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, session_id: Stri
         while let Ok(update) = update_rx.recv().await {
             let msg = match update {
                 SimUpdate::StateChanged(state) => WebSocketMessage::StateSync { state },
-                SimUpdate::Tick { time_s, events_processed } => {
-                    WebSocketMessage::Tick { time_s, events_processed }
-                }
-                SimUpdate::RobotMoved { robot_id, from_node, to_node, time_s } => {
-                    WebSocketMessage::RobotMoved { robot_id, from_node, to_node, time_s }
-                }
-                SimUpdate::RobotStateChanged { robot_id, old_state, new_state, time_s } => {
-                    WebSocketMessage::RobotStateChanged { robot_id, old_state, new_state, time_s }
-                }
-                SimUpdate::OrderCompleted { order_id, cycle_time_s, on_time } => {
-                    WebSocketMessage::OrderCompleted { order_id, cycle_time_s, on_time }
-                }
-                SimUpdate::MetricsUpdate(metrics) => {
-                    WebSocketMessage::MetricsUpdate { metrics }
-                }
-                SimUpdate::Finished(final_metrics) => {
-                    WebSocketMessage::Finished { final_metrics }
-                }
-                SimUpdate::Error(message) => {
-                    WebSocketMessage::Error { message }
-                }
+                SimUpdate::Tick {
+                    time_s,
+                    events_processed,
+                } => WebSocketMessage::Tick {
+                    time_s,
+                    events_processed,
+                },
+                SimUpdate::RobotMoved {
+                    robot_id,
+                    from_node,
+                    to_node,
+                    time_s,
+                } => WebSocketMessage::RobotMoved {
+                    robot_id,
+                    from_node,
+                    to_node,
+                    time_s,
+                },
+                SimUpdate::RobotStateChanged {
+                    robot_id,
+                    old_state,
+                    new_state,
+                    time_s,
+                } => WebSocketMessage::RobotStateChanged {
+                    robot_id,
+                    old_state,
+                    new_state,
+                    time_s,
+                },
+                SimUpdate::OrderCompleted {
+                    order_id,
+                    cycle_time_s,
+                    on_time,
+                } => WebSocketMessage::OrderCompleted {
+                    order_id,
+                    cycle_time_s,
+                    on_time,
+                },
+                SimUpdate::MetricsUpdate(metrics) => WebSocketMessage::MetricsUpdate { metrics },
+                SimUpdate::Finished(final_metrics) => WebSocketMessage::Finished { final_metrics },
+                SimUpdate::Error(message) => WebSocketMessage::Error { message },
             };
 
             let json = match serde_json::to_string(&msg) {
@@ -106,9 +128,13 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, session_id: Stri
                 if let Ok(cmd) = serde_json::from_str::<crate::types::ControlCommand>(&text) {
                     let session = session.lock().await;
                     let sim_cmd = match cmd {
-                        crate::types::ControlCommand::Start => crate::simulation::SimCommand::Resume,
+                        crate::types::ControlCommand::Start => {
+                            crate::simulation::SimCommand::Resume
+                        }
                         crate::types::ControlCommand::Pause => crate::simulation::SimCommand::Pause,
-                        crate::types::ControlCommand::Resume => crate::simulation::SimCommand::Resume,
+                        crate::types::ControlCommand::Resume => {
+                            crate::simulation::SimCommand::Resume
+                        }
                         crate::types::ControlCommand::SetSpeed { speed } => {
                             crate::simulation::SimCommand::SetSpeed(speed)
                         }

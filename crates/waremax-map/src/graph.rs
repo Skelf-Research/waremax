@@ -2,11 +2,21 @@
 
 use rkyv::{Archive, Deserialize, Serialize};
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
-use waremax_core::{NodeId, EdgeId};
 use std::collections::HashMap;
+use waremax_core::{EdgeId, NodeId};
 
 /// Direction of travel allowed on an edge (v2)
-#[derive(Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq, Default)]
+#[derive(
+    Archive,
+    Deserialize,
+    Serialize,
+    SerdeDeserialize,
+    SerdeSerialize,
+    Clone,
+    Debug,
+    PartialEq,
+    Default,
+)]
 pub enum EdgeDirection {
     /// Traffic can flow in both directions
     #[default]
@@ -16,7 +26,9 @@ pub enum EdgeDirection {
 }
 
 /// Node type in the warehouse map
-#[derive(Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq)]
+#[derive(
+    Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq,
+)]
 pub enum NodeType {
     Aisle,
     StationPick,
@@ -142,11 +154,17 @@ impl WarehouseMap {
         let edge_id = edge.id;
         let direction = edge.direction.clone();
 
-        self.adjacency.entry(from).or_default().push((to, edge_id, length));
+        self.adjacency
+            .entry(from)
+            .or_default()
+            .push((to, edge_id, length));
 
         if direction == EdgeDirection::Bidirectional {
             let reverse_id = EdgeId(edge_id.0 + 100000);
-            self.adjacency.entry(to).or_default().push((from, reverse_id, length));
+            self.adjacency
+                .entry(to)
+                .or_default()
+                .push((from, reverse_id, length));
             self.edges.insert(
                 reverse_id,
                 Edge {

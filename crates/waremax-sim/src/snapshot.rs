@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use waremax_core::{RobotId, NodeId, StationId, TaskId, OrderId, SimTime, ScheduledEvent};
+use waremax_core::{NodeId, OrderId, RobotId, ScheduledEvent, SimTime, StationId, TaskId};
 
 /// Snapshot of a robot's state at a point in time
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -113,7 +113,9 @@ impl WorldSnapshot {
                         seeking_charging: robot.seeking_charging,
                         assigned_charging_station: robot.assigned_charging_station.map(|c| c.0),
                         seeking_maintenance: robot.seeking_maintenance,
-                        assigned_maintenance_station: robot.assigned_maintenance_station.map(|m| m.0),
+                        assigned_maintenance_station: robot
+                            .assigned_maintenance_station
+                            .map(|m| m.0),
                         is_failed: robot.maintenance.is_failed,
                     },
                 )
@@ -210,17 +212,26 @@ impl WorldSnapshot {
 
     /// Get robot positions as a map of robot_id -> node_id
     pub fn robot_positions(&self) -> HashMap<u32, u32> {
-        self.robots.iter().map(|(id, r)| (*id, r.current_node)).collect()
+        self.robots
+            .iter()
+            .map(|(id, r)| (*id, r.current_node))
+            .collect()
     }
 
     /// Get count of idle robots
     pub fn idle_robot_count(&self) -> usize {
-        self.robots.values().filter(|r| r.state_type.starts_with("Idle")).count()
+        self.robots
+            .values()
+            .filter(|r| r.state_type.starts_with("Idle"))
+            .count()
     }
 
     /// Get count of moving robots
     pub fn moving_robot_count(&self) -> usize {
-        self.robots.values().filter(|r| r.state_type.starts_with("Moving")).count()
+        self.robots
+            .values()
+            .filter(|r| r.state_type.starts_with("Moving"))
+            .count()
     }
 }
 
