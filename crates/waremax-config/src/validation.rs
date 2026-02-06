@@ -337,7 +337,7 @@ fn validate_scenario_standalone(scenario: &ScenarioConfig, ctx: &mut ValidationE
 
     // Check station uniqueness and validity
     let mut station_ids: HashSet<&str> = HashSet::new();
-    let valid_station_types = vec!["pick", "drop", "inbound", "outbound"];
+    let valid_station_types = ["pick", "drop", "inbound", "outbound"];
 
     for (i, station) in scenario.stations.iter().enumerate() {
         let station_path = stations.index(i);

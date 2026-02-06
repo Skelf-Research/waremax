@@ -543,6 +543,7 @@ pub enum SweepDimension {
     /// Custom sweep with name and values
     Custom {
         name: String,
+        #[allow(clippy::type_complexity)]
         applicator: std::sync::Arc<dyn Fn(&mut ScenarioBuilder, &serde_json::Value) + Send + Sync>,
     },
 }

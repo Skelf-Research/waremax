@@ -2,10 +2,8 @@
 //!
 //! v3: Generate interactive HTML reports from simulation data
 
-use crate::charts::{ChartConfig, ChartGenerator};
 use crate::report::SimulationReport;
 use crate::timeseries::TimeSeriesCollector;
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use std::io;
 use std::path::Path;
 use tera::{Context, Tera};

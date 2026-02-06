@@ -357,6 +357,7 @@ pub struct BottleneckSummary {
 
 impl BottleneckAnalysis {
     /// Format as a human-readable report
+    #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
         let mut output = String::new();
         output.push_str("Bottleneck Analysis\n");
@@ -388,7 +389,7 @@ impl BottleneckAnalysis {
         ));
 
         if !self.bottlenecks.is_empty() {
-            output.push_str(&"\n".to_string());
+            output.push('\n');
             output.push_str(&"-".repeat(50));
             output.push_str("\nTop Bottlenecks:\n");
 

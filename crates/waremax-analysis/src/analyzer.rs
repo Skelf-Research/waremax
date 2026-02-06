@@ -70,7 +70,7 @@ impl RootCauseAnalysisReport {
         let mut output = String::new();
 
         // Header
-        output.push_str("\n");
+        output.push('\n');
         output.push_str(&"=".repeat(60));
         output.push_str("\n ROOT CAUSE ANALYSIS REPORT \n");
         output.push_str(&"=".repeat(60));
@@ -79,7 +79,7 @@ impl RootCauseAnalysisReport {
         // Summary section
         output.push_str("SUMMARY\n");
         output.push_str(&"-".repeat(60));
-        output.push_str("\n");
+        output.push('\n');
         output.push_str(&format!(
             "Orders Analyzed: {}\n",
             self.summary.orders_analyzed
@@ -107,11 +107,11 @@ impl RootCauseAnalysisReport {
         output.push_str(&format!("\nKey Finding: {}\n", self.summary.key_finding));
 
         // Delay Attribution section
-        output.push_str("\n");
+        output.push('\n');
         output.push_str(&"=".repeat(60));
         output.push_str("\n DELAY ATTRIBUTION \n");
         output.push_str(&"-".repeat(60));
-        output.push_str("\n");
+        output.push('\n');
         output.push_str(&format!(
             "Tasks Analyzed: {}\n",
             self.delay_attribution.task_count
@@ -147,11 +147,11 @@ impl RootCauseAnalysisReport {
         }
 
         // Bottleneck section
-        output.push_str("\n");
+        output.push('\n');
         output.push_str(&"=".repeat(60));
         output.push_str("\n BOTTLENECK ANALYSIS \n");
         output.push_str(&"-".repeat(60));
-        output.push_str("\n");
+        output.push('\n');
         output.push_str(&format!(
             "Total Bottlenecks: {}\n",
             self.bottleneck_analysis.summary.total_count
@@ -189,11 +189,11 @@ impl RootCauseAnalysisReport {
 
         // Anomalies section
         if !self.anomalies.is_empty() {
-            output.push_str("\n");
+            output.push('\n');
             output.push_str(&"=".repeat(60));
             output.push_str("\n ANOMALIES DETECTED \n");
             output.push_str(&"-".repeat(60));
-            output.push_str("\n");
+            output.push('\n');
             output.push_str(&format!("Total: {}\n", self.anomalies.len()));
             output.push_str("\nTop Anomalies:\n");
             for (i, anomaly) in self.anomalies.iter().take(5).enumerate() {
@@ -208,11 +208,11 @@ impl RootCauseAnalysisReport {
 
         // Recommendations section
         if !self.recommendations.is_empty() {
-            output.push_str("\n");
+            output.push('\n');
             output.push_str(&"=".repeat(60));
             output.push_str("\n RECOMMENDATIONS \n");
             output.push_str(&"-".repeat(60));
-            output.push_str("\n");
+            output.push('\n');
             for rec in &self.recommendations {
                 output.push_str(&format!("\n[Priority {}] {}\n", rec.priority, rec.category));
                 output.push_str(&format!("  {}\n", rec.text));
@@ -220,9 +220,9 @@ impl RootCauseAnalysisReport {
             }
         }
 
-        output.push_str("\n");
+        output.push('\n');
         output.push_str(&"=".repeat(60));
-        output.push_str("\n");
+        output.push('\n');
 
         output
     }
@@ -244,6 +244,7 @@ pub struct AnalyzerInput {
     /// Robot utilizations: (robot_id, utilization)
     pub robot_utilizations: Vec<(RobotId, f64)>,
     /// Station queue time series: (station_id, name, [(timestamp_s, queue_length)])
+    #[allow(clippy::type_complexity)]
     pub station_queue_series: Vec<(StationId, String, Vec<(f64, usize)>)>,
 }
 
@@ -388,7 +389,7 @@ impl RootCauseAnalyzer {
         let anomaly_penalty = (anomalies.len() as f64 * 2.0).min(20.0);
         score -= anomaly_penalty;
 
-        score.max(0.0).min(100.0)
+        score.clamp(0.0, 100.0)
     }
 
     /// Generate key finding text
@@ -522,7 +523,7 @@ impl RootCauseAnalyzer {
                     priority,
                     category: "Waste Reduction".to_string(),
                     text: text.to_string(),
-                    expected_impact: format!("Reduce waste time by 20-30%"),
+                    expected_impact: "Reduce waste time by 20-30%".to_string(),
                 });
                 priority += 1;
             }

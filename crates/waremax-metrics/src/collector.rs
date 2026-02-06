@@ -132,7 +132,7 @@ pub struct MetricsCollector {
     event_counts: HashMap<String, u64>,
 
     // sled database path (optional)
-    db_path: Option<String>,
+    _db_path: Option<String>,
 
     // v1: Charging SOC samples for average calculation
     charging_soc_samples: Vec<f64>,
@@ -149,7 +149,7 @@ pub struct MetricsCollector {
 #[derive(Clone, Default)]
 struct RobotStats {
     tasks_completed: u32,
-    total_distance: f64,
+    _total_distance: f64,
 }
 
 #[derive(Clone, Default)]
@@ -165,7 +165,7 @@ impl MetricsCollector {
 
     pub fn with_db(db_path: &str) -> Self {
         Self {
-            db_path: Some(db_path.to_string()),
+            _db_path: Some(db_path.to_string()),
             ..Self::default()
         }
     }

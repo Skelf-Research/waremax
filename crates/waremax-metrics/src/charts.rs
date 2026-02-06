@@ -217,7 +217,7 @@ impl ChartGenerator {
         // Find max time and max queue length
         let mut max_time = 0.0f64;
         let mut max_queue = 0usize;
-        for (_, data) in station_data {
+        for data in station_data.values() {
             for point in &data.queue_length {
                 max_time = max_time.max(point.time_s);
                 max_queue = max_queue.max(point.value);
@@ -290,7 +290,7 @@ impl ChartGenerator {
         // Aggregate by time bucket
         let mut throughput_by_time: std::collections::BTreeMap<i64, u32> =
             std::collections::BTreeMap::new();
-        for (_, data) in station_data {
+        for data in station_data.values() {
             for point in &data.throughput {
                 let bucket = (point.time_s / 60.0) as i64; // Per-minute buckets
                 *throughput_by_time.entry(bucket).or_insert(0) += point.value;

@@ -364,6 +364,7 @@ impl DelayAttributionSummary {
     }
 
     /// Format the summary as a human-readable string
+    #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
         let mut output = String::new();
         output.push_str(&format!(

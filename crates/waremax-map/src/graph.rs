@@ -27,9 +27,10 @@ pub enum EdgeDirection {
 
 /// Node type in the warehouse map
 #[derive(
-    Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq,
+    Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq, Default,
 )]
 pub enum NodeType {
+    #[default]
     Aisle,
     StationPick,
     StationDrop,
@@ -38,12 +39,6 @@ pub enum NodeType {
     Charging,
     Staging,
     Rack,
-}
-
-impl Default for NodeType {
-    fn default() -> Self {
-        NodeType::Aisle
-    }
 }
 
 /// A node in the warehouse map

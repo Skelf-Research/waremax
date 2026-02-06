@@ -36,8 +36,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, session_id: Stri
                     serde_json::to_string(&WebSocketMessage::Error {
                         message: "Session not found".to_string(),
                     })
-                    .unwrap()
-                    .into(),
+                    .unwrap(),
                 ))
                 .await;
             return;
@@ -50,8 +49,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, session_id: Stri
             serde_json::to_string(&WebSocketMessage::Connected {
                 session_id: session_id.clone(),
             })
-            .unwrap()
-            .into(),
+            .unwrap(),
         ))
         .await;
 
@@ -114,7 +112,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, session_id: Stri
                 Err(_) => continue,
             };
 
-            if sender.send(Message::Text(json.into())).await.is_err() {
+            if sender.send(Message::Text(json)).await.is_err() {
                 break;
             }
         }

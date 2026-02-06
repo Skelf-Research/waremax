@@ -386,8 +386,9 @@ fn main() {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_simulation(
-    scenario_path: &PathBuf,
+    scenario_path: &std::path::Path,
     seed_override: Option<u64>,
     output_format: &str,
     output_dir: Option<&std::path::Path>,
@@ -519,7 +520,7 @@ fn run_simulation(
     }
 }
 
-fn validate_scenario(scenario_path: &PathBuf) {
+fn validate_scenario(scenario_path: &std::path::Path) {
     println!("Validating scenario: {}", scenario_path.display());
 
     let path_str = scenario_path.to_string_lossy();
@@ -603,7 +604,7 @@ fn run_demo(duration_minutes: f64, num_robots: usize, order_rate: f64) {
 fn build_world_from_scenario(
     scenario: &waremax_config::ScenarioConfig,
     seed: u64,
-    _scenario_path: &PathBuf,
+    _scenario_path: &std::path::Path,
 ) -> waremax_sim::World {
     use waremax_core::{EdgeId, NodeId, RobotId, StationId};
     use waremax_entities::{
@@ -672,7 +673,7 @@ fn build_world_from_scenario(
 
     // Add robots
     for i in 0..scenario.robots.count {
-        let start_node = (i % (grid_size * grid_size) as u32) as u32;
+        let start_node = i % (grid_size * grid_size) as u32;
         let mut robot = if scenario.robots.battery.enabled {
             Robot::with_battery(
                 RobotId(i),
@@ -1099,7 +1100,7 @@ fn run_generate(
     println!("  Duration: {:.1} min", config.simulation.duration_minutes);
 }
 
-fn run_sweep(base: &PathBuf, sweep_spec: &str, replications: u32, output_dir: &PathBuf) {
+fn run_sweep(base: &std::path::Path, sweep_spec: &str, replications: u32, output_dir: &std::path::Path) {
     use waremax_testing::{BatchRunner, ScenarioComparator, SweepGenerator};
 
     println!("Running parameter sweep...");
@@ -1219,8 +1220,8 @@ fn run_sweep(base: &PathBuf, sweep_spec: &str, replications: u32, output_dir: &P
 }
 
 fn run_compare(
-    baseline_path: &PathBuf,
-    variant_path: &PathBuf,
+    baseline_path: &std::path::Path,
+    variant_path: &std::path::Path,
     replications: u32,
     output: Option<&std::path::Path>,
 ) {
@@ -1300,8 +1301,8 @@ fn run_compare(
 }
 
 fn run_ab_test(
-    baseline_path: &PathBuf,
-    variant_path: &PathBuf,
+    baseline_path: &std::path::Path,
+    variant_path: &std::path::Path,
     replications: u32,
     alpha: f64,
     output: Option<&std::path::Path>,
@@ -1598,7 +1599,7 @@ fn run_list_presets() {
 
 // v5: Root Cause Analysis command implementation
 fn run_analyze(
-    scenario_path: &PathBuf,
+    scenario_path: &std::path::Path,
     output_path: Option<&std::path::Path>,
     format: &str,
     detailed: bool,

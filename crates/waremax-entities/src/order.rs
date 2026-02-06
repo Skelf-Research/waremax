@@ -17,18 +17,13 @@ impl OrderLine {
 }
 
 /// Order status
-#[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq, Default)]
 pub enum OrderStatus {
+    #[default]
     Pending,
     InProgress,
     Completed,
     Cancelled,
-}
-
-impl Default for OrderStatus {
-    fn default() -> Self {
-        OrderStatus::Pending
-    }
 }
 
 /// An order in the system
@@ -78,7 +73,7 @@ impl Order {
 
     pub fn is_late(&self, current_time: SimTime) -> bool {
         self.due_time
-            .map_or(false, |due| current_time > due && !self.is_complete())
+            .is_some_and(|due| current_time > due && !self.is_complete())
     }
 
     pub fn cycle_time(&self) -> Option<SimTime> {

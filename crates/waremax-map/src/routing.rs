@@ -210,15 +210,15 @@ impl Router {
 
         impl Eq for State {}
 
-        impl PartialOrd for State {
-            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                other.cost.partial_cmp(&self.cost)
+        impl Ord for State {
+            fn cmp(&self, other: &Self) -> Ordering {
+                other.cost.partial_cmp(&self.cost).unwrap_or(Ordering::Equal)
             }
         }
 
-        impl Ord for State {
-            fn cmp(&self, other: &Self) -> Ordering {
-                self.partial_cmp(other).unwrap_or(Ordering::Equal)
+        impl PartialOrd for State {
+            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                Some(self.cmp(other))
             }
         }
 
@@ -259,7 +259,7 @@ impl Router {
                 let edge_cost = self.edge_cost(map, length, edge_id, traffic);
                 let next_cost = cost + edge_cost;
 
-                if dist.get(&neighbor).map_or(true, |&d| next_cost < d) {
+                if dist.get(&neighbor).is_none_or(|&d| next_cost < d) {
                     dist.insert(neighbor, next_cost);
                     prev.insert(neighbor, node);
                     heap.push(State {
@@ -290,15 +290,15 @@ impl Router {
 
         impl Eq for State {}
 
-        impl PartialOrd for State {
-            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                other.cost.partial_cmp(&self.cost)
+        impl Ord for State {
+            fn cmp(&self, other: &Self) -> Ordering {
+                other.cost.partial_cmp(&self.cost).unwrap_or(Ordering::Equal)
             }
         }
 
-        impl Ord for State {
-            fn cmp(&self, other: &Self) -> Ordering {
-                self.partial_cmp(other).unwrap_or(Ordering::Equal)
+        impl PartialOrd for State {
+            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                Some(self.cmp(other))
             }
         }
 
@@ -344,7 +344,7 @@ impl Router {
                 let edge_cost = self.edge_cost(map, length, edge_id, traffic);
                 let next_cost = cost + edge_cost;
 
-                if dist.get(&neighbor).map_or(true, |&d| next_cost < d) {
+                if dist.get(&neighbor).is_none_or(|&d| next_cost < d) {
                     dist.insert(neighbor, next_cost);
                     prev.insert(neighbor, node);
                     heap.push(State {
@@ -375,15 +375,15 @@ impl Router {
 
         impl Eq for State {}
 
-        impl PartialOrd for State {
-            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                other.f_cost.partial_cmp(&self.f_cost)
+        impl Ord for State {
+            fn cmp(&self, other: &Self) -> Ordering {
+                other.f_cost.partial_cmp(&self.f_cost).unwrap_or(Ordering::Equal)
             }
         }
 
-        impl Ord for State {
-            fn cmp(&self, other: &Self) -> Ordering {
-                self.partial_cmp(other).unwrap_or(Ordering::Equal)
+        impl PartialOrd for State {
+            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                Some(self.cmp(other))
             }
         }
 
@@ -426,7 +426,7 @@ impl Router {
                 let edge_cost = self.edge_cost(map, length, edge_id, traffic);
                 let tentative_g = g_cost + edge_cost;
 
-                if g_score.get(&neighbor).map_or(true, |&g| tentative_g < g) {
+                if g_score.get(&neighbor).is_none_or(|&g| tentative_g < g) {
                     g_score.insert(neighbor, tentative_g);
                     prev.insert(neighbor, node);
 

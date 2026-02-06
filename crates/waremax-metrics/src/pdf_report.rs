@@ -44,10 +44,10 @@ impl PdfReportGenerator {
         // Use built-in font
         let font = doc
             .add_builtin_font(BuiltinFont::Helvetica)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Font error: {:?}", e)))?;
+            .map_err(|e| io::Error::other(format!("Font error: {:?}", e)))?;
         let font_bold = doc
             .add_builtin_font(BuiltinFont::HelveticaBold)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Font error: {:?}", e)))?;
+            .map_err(|e| io::Error::other(format!("Font error: {:?}", e)))?;
 
         let mut y_pos = self.page_height_mm - self.margin_mm;
         let x_pos = self.margin_mm;
@@ -185,7 +185,7 @@ impl PdfReportGenerator {
         // Per-robot summary (just counts)
         if let Some(ref robots) = report.robot_reports {
             current_layer.use_text(
-                &format!("Robot Summary ({} robots)", robots.len()),
+                format!("Robot Summary ({} robots)", robots.len()),
                 14.0,
                 Mm(x_pos),
                 Mm(y_pos),
@@ -214,7 +214,7 @@ impl PdfReportGenerator {
         // Per-station summary (just counts)
         if let Some(ref stations) = report.station_reports {
             current_layer.use_text(
-                &format!("Station Summary ({} stations)", stations.len()),
+                format!("Station Summary ({} stations)", stations.len()),
                 14.0,
                 Mm(x_pos),
                 Mm(y_pos),
@@ -251,7 +251,7 @@ impl PdfReportGenerator {
         let file = File::create(output_path)?;
         let mut buf_writer = BufWriter::new(file);
         doc.save(&mut buf_writer).map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("PDF save error: {:?}", e))
+            io::Error::other(format!("PDF save error: {:?}", e))
         })?;
 
         Ok(())

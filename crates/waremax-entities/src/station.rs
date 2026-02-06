@@ -8,19 +8,14 @@ use waremax_core::{NodeId, RobotId, SimTime, StationId};
 
 /// Type of station
 #[derive(
-    Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq,
+    Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq, Default,
 )]
 pub enum StationType {
+    #[default]
     Pick,
     Drop,
     Inbound,
     Outbound,
-}
-
-impl Default for StationType {
-    fn default() -> Self {
-        StationType::Pick
-    }
 }
 
 /// v1: Service time model with distribution support
