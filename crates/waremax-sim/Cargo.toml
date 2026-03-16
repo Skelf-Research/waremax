@@ -1,0 +1,14 @@
+[package]
+name = "waremax-sim"
+version.workspace = true
+edition.workspace = true
+description = "Simulation orchestration for Waremax"
+
+[dependencies]
+waremax-core = { workspace = true }
+waremax-map = { workspace = true }
+waremax-storage = { workspace = true }
+waremax-entities = { workspace = true }
+waremax-policies = { workspace = true }
+waremax-config = { workspace = true }
+waremax-metrics = { workspace = true }

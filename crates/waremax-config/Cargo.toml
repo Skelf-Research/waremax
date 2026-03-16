@@ -1,0 +1,12 @@
+[package]
+name = "waremax-config"
+version.workspace = true
+edition.workspace = true
+description = "Configuration loading and validation for Waremax"
+
+[dependencies]
+waremax-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }

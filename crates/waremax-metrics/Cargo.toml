@@ -1,0 +1,12 @@
+[package]
+name = "waremax-metrics"
+version.workspace = true
+edition.workspace = true
+description = "Metrics collection and reporting for Waremax"
+
+[dependencies]
+waremax-core = { workspace = true }
+rkyv = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sled = { workspace = true }

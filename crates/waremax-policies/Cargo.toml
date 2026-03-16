@@ -1,0 +1,13 @@
+[package]
+name = "waremax-policies"
+version.workspace = true
+edition.workspace = true
+description = "Pluggable policies for Waremax simulation"
+
+[dependencies]
+waremax-core = { workspace = true }
+waremax-map = { workspace = true }
+waremax-entities = { workspace = true }
+waremax-storage = { workspace = true }
+
+[dev-dependencies]

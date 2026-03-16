@@ -1,0 +1,11 @@
+[package]
+name = "waremax-map"
+version.workspace = true
+edition.workspace = true
+description = "Graph-based map, routing, and traffic management for Waremax"
+
+[dependencies]
+waremax-core = { workspace = true }
+rkyv = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
