@@ -1,13 +1,17 @@
 //! World state container
 
-use waremax_core::{RobotId, NodeId, StationId, OrderId, TaskId, SkuId, RackId, SimRng, SimTime, IdGenerator};
-use waremax_map::{WarehouseMap, Router, TrafficManager, NodeType};
+use waremax_core::{RobotId, NodeId, StationId, OrderId, TaskId, SkuId, RackId, ChargingStationId, MaintenanceStationId, SimRng, SimTime, IdGenerator};
+use waremax_map::{WarehouseMap, Router, TrafficManager, NodeType, ReservationManager};
 use waremax_storage::{Inventory, SkuCatalog, Rack, Sku, BinAddress};
-use waremax_entities::{Robot, Station, Order, Task};
+use waremax_entities::{Robot, Station, Order, Task, ChargingStation, MaintenanceStation};
 use waremax_policies::{
     TaskAllocationPolicy, StationAssignmentPolicy, BatchingPolicy, PriorityPolicy,
+    TrafficPolicy, WaitAtNodePolicy,
     PolicyContext, NearestRobotPolicy, LeastQueuePolicy, NoBatchingPolicy, StrictPriorityPolicy,
+    DeadlockResolver, YoungestRobotBacksUp,
 };
+use waremax_metrics::{TimeSeriesCollector, EventTraceCollector};
+use waremax_analysis::AttributionCollector;
 use std::collections::HashMap;
 
 use crate::distributions::DistributionSet;
@@ -18,6 +22,8 @@ pub struct PolicySet {
     pub station_assignment: Box<dyn StationAssignmentPolicy>,
     pub batching: Box<dyn BatchingPolicy>,
     pub priority: Box<dyn PriorityPolicy>,
+    /// v1: Traffic policy for handling congestion
+    pub traffic: Box<dyn TrafficPolicy>,
 }
 
 impl PolicySet {
@@ -30,6 +36,17 @@ impl PolicySet {
             self.priority.name().to_string(),
         )
     }
+
+    /// Get all policy names including traffic (v1)
+    pub fn all_names(&self) -> (String, String, String, String, String) {
+        (
+            self.task_allocation.name().to_string(),
+            self.station_assignment.name().to_string(),
+            self.batching.name().to_string(),
+            self.priority.name().to_string(),
+            self.traffic.name().to_string(),
+        )
+    }
 }
 
 impl Default for PolicySet {
@@ -39,6 +56,7 @@ impl Default for PolicySet {
             station_assignment: Box::new(LeastQueuePolicy::default()),
             batching: Box::new(NoBatchingPolicy::new()),
             priority: Box::new(StrictPriorityPolicy::new()),
+            traffic: Box::new(WaitAtNodePolicy::new()),
         }
     }
 }
@@ -64,12 +82,20 @@ pub struct World {
     pub orders: HashMap<OrderId, Order>,
     pub tasks: HashMap<TaskId, Task>,
 
+    // v1: Charging infrastructure
+    pub charging_stations: HashMap<ChargingStationId, ChargingStation>,
+
+    // v3: Maintenance infrastructure
+    pub maintenance_stations: HashMap<MaintenanceStationId, MaintenanceStation>,
+
     // Pending work queues
     pub pending_tasks: Vec<TaskId>,
 
     // ID generators
     pub order_id_gen: IdGenerator<OrderId>,
     pub task_id_gen: IdGenerator<TaskId>,
+    pub charging_id_gen: IdGenerator<ChargingStationId>,
+    pub maintenance_id_gen: IdGenerator<MaintenanceStationId>,
 
     // Policies
     pub policies: PolicySet,
@@ -77,8 +103,25 @@ pub struct World {
     // Distributions
     pub distributions: DistributionSet,
 
+    // v1: Time-series metrics
+    pub time_series: TimeSeriesCollector,
+
     // Configuration
     pub due_time_offset_min: Option<f64>,
+    /// v1: Metrics sample interval in seconds
+    pub metrics_sample_interval_s: f64,
+
+    /// v2: Deadlock resolution policy
+    pub deadlock_resolver: Box<dyn DeadlockResolver>,
+
+    /// v2: Reservation-based traffic control
+    pub reservation_manager: ReservationManager,
+
+    /// v3: Event trace collector for debugging
+    pub trace_collector: EventTraceCollector,
+
+    /// v5: Attribution collector for RCA
+    pub attribution_collector: AttributionCollector,
 }
 
 impl World {
@@ -95,13 +138,99 @@ impl World {
             stations: HashMap::new(),
             orders: HashMap::new(),
             tasks: HashMap::new(),
+            charging_stations: HashMap::new(),
+            maintenance_stations: HashMap::new(),
             pending_tasks: Vec::new(),
             order_id_gen: IdGenerator::new(),
             task_id_gen: IdGenerator::new(),
+            charging_id_gen: IdGenerator::new(),
+            maintenance_id_gen: IdGenerator::new(),
             policies: PolicySet::default(),
             distributions: DistributionSet::default(),
+            time_series: TimeSeriesCollector::new(60.0), // Default 60s sample interval
             due_time_offset_min: Some(60.0),
+            metrics_sample_interval_s: 60.0,
+            deadlock_resolver: Box::new(YoungestRobotBacksUp::new()),
+            reservation_manager: ReservationManager::new(),
+            trace_collector: EventTraceCollector::default(),
+            attribution_collector: AttributionCollector::new(),
         }
+    }
+
+    /// Get a charging station by ID
+    pub fn get_charging_station(&self, id: ChargingStationId) -> Option<&ChargingStation> {
+        self.charging_stations.get(&id)
+    }
+
+    /// Get a mutable charging station by ID
+    pub fn get_charging_station_mut(&mut self, id: ChargingStationId) -> Option<&mut ChargingStation> {
+        self.charging_stations.get_mut(&id)
+    }
+
+    /// Find the nearest charging station with available capacity
+    pub fn find_nearest_charging_station(&mut self, from_node: NodeId) -> Option<ChargingStationId> {
+        let mut best: Option<(ChargingStationId, f64)> = None;
+
+        for (id, station) in &self.charging_stations {
+            // Check if station has capacity (queue not full or can charge)
+            if !station.can_accept() {
+                continue;
+            }
+
+            // Calculate distance
+            if let Some(route) = self.router.find_route(&self.map, from_node, station.node) {
+                let dist = route.total_distance;
+                if best.is_none() || dist < best.unwrap().1 {
+                    best = Some((*id, dist));
+                }
+            }
+        }
+
+        best.map(|(id, _)| id)
+    }
+
+    /// Generate the next charging station ID
+    pub fn next_charging_id(&mut self) -> ChargingStationId {
+        self.charging_id_gen.next()
+    }
+
+    // === v3: Maintenance station helpers ===
+
+    /// Get a maintenance station by ID
+    pub fn get_maintenance_station(&self, id: MaintenanceStationId) -> Option<&MaintenanceStation> {
+        self.maintenance_stations.get(&id)
+    }
+
+    /// Get a mutable maintenance station by ID
+    pub fn get_maintenance_station_mut(&mut self, id: MaintenanceStationId) -> Option<&mut MaintenanceStation> {
+        self.maintenance_stations.get_mut(&id)
+    }
+
+    /// Find the nearest maintenance station with available capacity
+    pub fn find_nearest_maintenance_station(&mut self, from_node: NodeId) -> Option<MaintenanceStationId> {
+        let mut best: Option<(MaintenanceStationId, f64)> = None;
+
+        for (id, station) in &self.maintenance_stations {
+            // Check if station has capacity (queue not full or can service)
+            if !station.can_accept() {
+                continue;
+            }
+
+            // Calculate distance
+            if let Some(route) = self.router.find_route(&self.map, from_node, station.node) {
+                let dist = route.total_distance;
+                if best.is_none() || dist < best.unwrap().1 {
+                    best = Some((*id, dist));
+                }
+            }
+        }
+
+        best.map(|(id, _)| id)
+    }
+
+    /// Generate the next maintenance station ID
+    pub fn next_maintenance_id(&mut self) -> MaintenanceStationId {
+        self.maintenance_id_gen.next()
     }
 
     /// Create a PolicyContext from current world state for policy decisions

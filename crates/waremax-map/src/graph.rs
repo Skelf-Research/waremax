@@ -5,6 +5,16 @@ use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 use waremax_core::{NodeId, EdgeId};
 use std::collections::HashMap;
 
+/// Direction of travel allowed on an edge (v2)
+#[derive(Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq, Default)]
+pub enum EdgeDirection {
+    /// Traffic can flow in both directions
+    #[default]
+    Bidirectional,
+    /// Traffic can only flow from->to (one-way aisle)
+    OneWay,
+}
+
 /// Node type in the warehouse map
 #[derive(Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq)]
 pub enum NodeType {
@@ -56,6 +66,8 @@ pub struct Edge {
     pub to: NodeId,
     pub length_m: f64,
     pub capacity: u32,
+    /// v2: Direction of travel allowed on this edge
+    pub direction: EdgeDirection,
 }
 
 impl Edge {
@@ -66,7 +78,20 @@ impl Edge {
             to,
             length_m,
             capacity: 1,
+            direction: EdgeDirection::Bidirectional,
         }
+    }
+
+    /// Set the direction for this edge (builder pattern)
+    pub fn with_direction(mut self, direction: EdgeDirection) -> Self {
+        self.direction = direction;
+        self
+    }
+
+    /// Set the capacity for this edge (builder pattern)
+    pub fn with_capacity(mut self, capacity: u32) -> Self {
+        self.capacity = capacity;
+        self
     }
 }
 
@@ -94,15 +119,20 @@ impl WarehouseMap {
         self.nodes.insert(id, node);
     }
 
-    pub fn add_edge(&mut self, edge: Edge, bidirectional: bool) {
+    /// Add an edge to the map
+    ///
+    /// If the edge direction is Bidirectional, a reverse edge is automatically created.
+    /// If OneWay, only the forward direction is added.
+    pub fn add_edge(&mut self, edge: Edge) {
         let from = edge.from;
         let to = edge.to;
         let length = edge.length_m;
         let edge_id = edge.id;
+        let direction = edge.direction.clone();
 
         self.adjacency.entry(from).or_default().push((to, edge_id, length));
 
-        if bidirectional {
+        if direction == EdgeDirection::Bidirectional {
             let reverse_id = EdgeId(edge_id.0 + 100000);
             self.adjacency.entry(to).or_default().push((from, reverse_id, length));
             self.edges.insert(
@@ -113,6 +143,7 @@ impl WarehouseMap {
                     to: from,
                     length_m: length,
                     capacity: edge.capacity,
+                    direction: EdgeDirection::OneWay, // Reverse edge is one-way
                 },
             );
         }

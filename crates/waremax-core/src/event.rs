@@ -2,7 +2,7 @@
 
 use crate::{
     SimTime, EventId, RobotId, NodeId, EdgeId, StationId, TaskId, OrderId, SkuId, BinId,
-    ShipmentId, ChargingStationId,
+    ShipmentId, ChargingStationId, MaintenanceStationId,
 };
 use rkyv::{Archive, Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -139,6 +139,56 @@ pub enum SimEvent {
 
     /// Periodic metrics sampling tick
     MetricsSampleTick,
+
+    // === v2: Traffic & Safety Events ===
+
+    /// Deadlock detected between robots
+    DeadlockDetected {
+        /// Robot IDs involved in the deadlock cycle
+        robots: Vec<RobotId>,
+    },
+
+    /// Deadlock resolution action taken
+    DeadlockResolved {
+        /// Robot IDs that were in the deadlock
+        robots: Vec<RobotId>,
+        /// Robot that was selected to resolve the deadlock
+        resolver_robot: RobotId,
+    },
+
+    // === v3: Robot Failures & Maintenance Events ===
+
+    /// Robot has failed and needs repair
+    RobotFailure {
+        robot_id: RobotId,
+        /// Task that was interrupted by the failure, if any
+        interrupted_task: Option<TaskId>,
+    },
+
+    /// Robot scheduled maintenance is due
+    RobotMaintenanceDue {
+        robot_id: RobotId,
+        /// Operating hours since last maintenance
+        operating_hours: f64,
+    },
+
+    /// Robot starts maintenance or repair at a station
+    MaintenanceStart {
+        robot_id: RobotId,
+        station_id: MaintenanceStationId,
+        /// True if this is a repair (failure recovery), false if scheduled maintenance
+        is_repair: bool,
+    },
+
+    /// Robot completes maintenance or repair
+    MaintenanceEnd {
+        robot_id: RobotId,
+        station_id: MaintenanceStationId,
+        /// True if this was a repair, false if scheduled maintenance
+        is_repair: bool,
+        /// Duration of the maintenance/repair in seconds
+        duration_s: f64,
+    },
 }
 
 impl SimEvent {
@@ -168,6 +218,14 @@ impl SimEvent {
             SimEvent::RobotLowBattery { .. } => "robot_low_battery",
             // v1: Metrics events
             SimEvent::MetricsSampleTick => "metrics_sample_tick",
+            // v2: Traffic & Safety events
+            SimEvent::DeadlockDetected { .. } => "deadlock_detected",
+            SimEvent::DeadlockResolved { .. } => "deadlock_resolved",
+            // v3: Robot Failures & Maintenance events
+            SimEvent::RobotFailure { .. } => "robot_failure",
+            SimEvent::RobotMaintenanceDue { .. } => "robot_maintenance_due",
+            SimEvent::MaintenanceStart { .. } => "maintenance_start",
+            SimEvent::MaintenanceEnd { .. } => "maintenance_end",
         }
     }
 
@@ -185,6 +243,11 @@ impl SimEvent {
             SimEvent::RobotChargingStart { robot_id, .. } => Some(*robot_id),
             SimEvent::RobotChargingEnd { robot_id, .. } => Some(*robot_id),
             SimEvent::RobotLowBattery { robot_id, .. } => Some(*robot_id),
+            SimEvent::DeadlockResolved { resolver_robot, .. } => Some(*resolver_robot),
+            SimEvent::RobotFailure { robot_id, .. } => Some(*robot_id),
+            SimEvent::RobotMaintenanceDue { robot_id, .. } => Some(*robot_id),
+            SimEvent::MaintenanceStart { robot_id, .. } => Some(*robot_id),
+            SimEvent::MaintenanceEnd { robot_id, .. } => Some(*robot_id),
             _ => None,
         }
     }
@@ -217,6 +280,15 @@ impl SimEvent {
         match self {
             SimEvent::RobotChargingStart { station_id, .. } => Some(*station_id),
             SimEvent::RobotChargingEnd { station_id, .. } => Some(*station_id),
+            _ => None,
+        }
+    }
+
+    /// Get the maintenance station ID associated with this event, if any
+    pub fn maintenance_station_id(&self) -> Option<MaintenanceStationId> {
+        match self {
+            SimEvent::MaintenanceStart { station_id, .. } => Some(*station_id),
+            SimEvent::MaintenanceEnd { station_id, .. } => Some(*station_id),
             _ => None,
         }
     }

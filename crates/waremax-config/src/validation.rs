@@ -689,6 +689,9 @@ mod tests {
                 count: 5,
                 max_speed_mps: 1.5,
                 max_payload_kg: 25.0,
+                battery: BatteryConfig::default(),
+                maintenance: RobotMaintenanceConfig::default(),
+                failure: FailureConfig::default(),
             },
             stations: vec![StationConfig {
                 id: "S1".to_string(),
@@ -696,10 +699,7 @@ mod tests {
                 station_type: "pick".to_string(),
                 concurrency: 2,
                 queue_capacity: None,
-                service_time_s: ServiceTimeConfig {
-                    base: 5.0,
-                    per_item: 2.0,
-                },
+                service_time_s: ServiceTimeConfig::constant(5.0, 2.0),
             }],
             orders: OrderConfig {
                 arrival_process: ArrivalProcess {
@@ -723,6 +723,11 @@ mod tests {
             policies: PolicyConfig::default(),
             traffic: TrafficConfig::default(),
             routing: RoutingConfig::default(),
+            inbound: None,
+            replenishment: None,
+            charging_stations: vec![],
+            metrics: MetricsConfig::default(),
+            maintenance_stations: vec![],
         }
     }
 
@@ -780,10 +785,7 @@ mod tests {
             station_type: "drop".to_string(),
             concurrency: 1,
             queue_capacity: None,
-            service_time_s: ServiceTimeConfig {
-                base: 3.0,
-                per_item: 1.0,
-            },
+            service_time_s: ServiceTimeConfig::constant(3.0, 1.0),
         });
         let result = validate_scenario_only(&scenario);
         assert!(result.is_err());
@@ -834,6 +836,7 @@ mod tests {
                 to: "N2".to_string(), // N2 doesn't exist
                 length_m: 3.0,
                 bidirectional: true,
+                direction: None,
                 capacity: 1,
             }],
             constraints: ConstraintsConfig::default(),

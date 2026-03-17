@@ -48,6 +48,9 @@ pub struct ScenarioConfig {
     /// v1: Metrics configuration
     #[serde(default)]
     pub metrics: MetricsConfig,
+    /// v3: Maintenance station configuration
+    #[serde(default)]
+    pub maintenance_stations: Vec<MaintenanceStationConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -79,6 +82,15 @@ pub struct RobotConfig {
     pub max_speed_mps: f64,
     #[serde(default = "default_payload")]
     pub max_payload_kg: f64,
+    /// v1: Battery configuration
+    #[serde(default)]
+    pub battery: BatteryConfig,
+    /// v3: Scheduled maintenance configuration
+    #[serde(default)]
+    pub maintenance: RobotMaintenanceConfig,
+    /// v3: Random failure configuration
+    #[serde(default)]
+    pub failure: FailureConfig,
 }
 
 fn default_payload() -> f64 {
@@ -103,9 +115,93 @@ fn default_concurrency() -> u32 {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ServiceTimeConfig {
+    /// Distribution type: constant, lognormal, exponential, uniform (v1)
+    #[serde(default = "default_service_dist")]
+    pub distribution: String,
+    /// Base service time (for constant, or mean for lognormal)
+    #[serde(default = "default_base_time")]
     pub base: f64,
+    /// Per-item service time
     #[serde(default)]
     pub per_item: f64,
+    /// Standard deviation (for lognormal)
+    #[serde(default)]
+    pub base_stddev: f64,
+    /// Per-item stddev (for lognormal)
+    #[serde(default)]
+    pub per_item_stddev: f64,
+    /// Min time (for uniform)
+    #[serde(default)]
+    pub min_s: f64,
+    /// Max time (for uniform)
+    #[serde(default)]
+    pub max_s: f64,
+}
+
+fn default_service_dist() -> String {
+    "constant".to_string()
+}
+
+fn default_base_time() -> f64 {
+    5.0
+}
+
+impl Default for ServiceTimeConfig {
+    fn default() -> Self {
+        Self {
+            distribution: default_service_dist(),
+            base: default_base_time(),
+            per_item: 0.0,
+            base_stddev: 0.0,
+            per_item_stddev: 0.0,
+            min_s: 0.0,
+            max_s: 0.0,
+        }
+    }
+}
+
+impl ServiceTimeConfig {
+    /// Create a constant service time config
+    pub fn constant(base: f64, per_item: f64) -> Self {
+        Self {
+            distribution: "constant".to_string(),
+            base,
+            per_item,
+            ..Self::default()
+        }
+    }
+
+    /// Create a lognormal service time config
+    pub fn lognormal(base_mean: f64, base_stddev: f64, per_item_mean: f64, per_item_stddev: f64) -> Self {
+        Self {
+            distribution: "lognormal".to_string(),
+            base: base_mean,
+            base_stddev,
+            per_item: per_item_mean,
+            per_item_stddev,
+            ..Self::default()
+        }
+    }
+
+    /// Create a uniform service time config
+    pub fn uniform(min_s: f64, max_s: f64, per_item: f64) -> Self {
+        Self {
+            distribution: "uniform".to_string(),
+            min_s,
+            max_s,
+            per_item,
+            ..Self::default()
+        }
+    }
+
+    /// Create an exponential service time config
+    pub fn exponential(mean_s: f64) -> Self {
+        Self {
+            distribution: "exponential".to_string(),
+            base: mean_s,
+            ..Self::default()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -172,16 +268,32 @@ pub struct PolicyConfig {
 pub struct TaskAllocationConfig {
     #[serde(rename = "type", default = "default_allocation")]
     pub alloc_type: String,
+    /// Travel weight for auction policy (v1)
+    #[serde(default = "default_weight")]
+    pub travel_weight: f64,
+    /// Queue weight for auction policy (v1)
+    #[serde(default = "default_queue_weight")]
+    pub queue_weight: f64,
 }
 
 fn default_allocation() -> String {
     "nearest_robot".to_string()
 }
 
+fn default_weight() -> f64 {
+    1.0
+}
+
+fn default_queue_weight() -> f64 {
+    0.5
+}
+
 impl Default for TaskAllocationConfig {
     fn default() -> Self {
         Self {
             alloc_type: default_allocation(),
+            travel_weight: default_weight(),
+            queue_weight: default_queue_weight(),
         }
     }
 }
@@ -209,6 +321,8 @@ pub struct BatchingConfig {
     #[serde(rename = "type", default = "default_batching")]
     pub batch_type: String,
     pub max_items: Option<u32>,
+    /// Max weight per batch in kg (v1)
+    pub max_weight_kg: Option<f64>,
 }
 
 fn default_batching() -> String {
@@ -220,6 +334,7 @@ impl Default for BatchingConfig {
         Self {
             batch_type: default_batching(),
             max_items: None,
+            max_weight_kg: None,
         }
     }
 }
@@ -228,16 +343,32 @@ impl Default for BatchingConfig {
 pub struct PriorityConfig {
     #[serde(rename = "type", default = "default_priority")]
     pub priority_type: String,
+    /// Weight for pick tasks in weighted_fair policy (v1)
+    #[serde(default = "default_priority_weight")]
+    pub pick_weight: u32,
+    /// Weight for putaway tasks in weighted_fair policy (v1)
+    #[serde(default = "default_priority_weight")]
+    pub putaway_weight: u32,
+    /// Weight for replenishment tasks in weighted_fair policy (v1)
+    #[serde(default = "default_priority_weight")]
+    pub replen_weight: u32,
 }
 
 fn default_priority() -> String {
     "strict_priority".to_string()
 }
 
+fn default_priority_weight() -> u32 {
+    1
+}
+
 impl Default for PriorityConfig {
     fn default() -> Self {
         Self {
             priority_type: default_priority(),
+            pick_weight: default_priority_weight(),
+            putaway_weight: default_priority_weight(),
+            replen_weight: default_priority_weight(),
         }
     }
 }
@@ -250,6 +381,27 @@ pub struct TrafficConfig {
     pub edge_capacity_default: u32,
     #[serde(default = "default_capacity")]
     pub node_capacity_default: u32,
+    /// Wait threshold before rerouting in seconds (v1)
+    #[serde(default = "default_wait_threshold")]
+    pub wait_threshold_s: f64,
+    /// Max reroute attempts before giving up (v1)
+    #[serde(default = "default_max_reroutes")]
+    pub max_reroute_attempts: u32,
+    /// v2: Enable deadlock detection
+    #[serde(default)]
+    pub deadlock_detection: bool,
+    /// v2: Deadlock resolution strategy (youngest_backs_up, lowest_priority_aborts, wait_and_retry, tiered)
+    #[serde(default = "default_deadlock_resolver")]
+    pub deadlock_resolver: String,
+    /// v2: How often to check for deadlocks (0 = only on wait, >0 = periodic check interval)
+    #[serde(default)]
+    pub deadlock_check_interval_s: f64,
+    /// v2: Enable reservation-based traffic control
+    #[serde(default)]
+    pub reservation_enabled: bool,
+    /// v2: How far ahead to reserve path segments (seconds)
+    #[serde(default = "default_reservation_lookahead")]
+    pub reservation_lookahead_s: f64,
 }
 
 fn default_traffic_policy() -> String {
@@ -260,12 +412,35 @@ fn default_capacity() -> u32 {
     1
 }
 
+fn default_wait_threshold() -> f64 {
+    2.0
+}
+
+fn default_max_reroutes() -> u32 {
+    3
+}
+
+fn default_deadlock_resolver() -> String {
+    "youngest_backs_up".to_string()
+}
+
+fn default_reservation_lookahead() -> f64 {
+    30.0 // 30 seconds lookahead by default
+}
+
 impl Default for TrafficConfig {
     fn default() -> Self {
         Self {
             policy: default_traffic_policy(),
             edge_capacity_default: default_capacity(),
             node_capacity_default: default_capacity(),
+            wait_threshold_s: default_wait_threshold(),
+            max_reroute_attempts: default_max_reroutes(),
+            deadlock_detection: false,
+            deadlock_resolver: default_deadlock_resolver(),
+            deadlock_check_interval_s: 0.0,
+            reservation_enabled: false,
+            reservation_lookahead_s: default_reservation_lookahead(),
         }
     }
 }
@@ -278,6 +453,9 @@ pub struct RoutingConfig {
     pub congestion_aware: bool,
     #[serde(default = "default_cache")]
     pub cache_routes: bool,
+    /// Congestion weight factor for congestion-aware routing (v1)
+    #[serde(default = "default_congestion_weight")]
+    pub congestion_weight: f64,
 }
 
 fn default_algorithm() -> String {
@@ -288,12 +466,17 @@ fn default_cache() -> bool {
     true
 }
 
+fn default_congestion_weight() -> f64 {
+    0.5
+}
+
 impl Default for RoutingConfig {
     fn default() -> Self {
         Self {
             algorithm: default_algorithm(),
             congestion_aware: false,
             cache_routes: default_cache(),
+            congestion_weight: default_congestion_weight(),
         }
     }
 }
@@ -452,6 +635,33 @@ pub struct MetricsConfig {
     pub congestion_top_n: usize,
     #[serde(default)]
     pub track_sla: bool,
+    // v3: Advanced analytics options
+    /// Generate per-robot breakdown reports
+    #[serde(default)]
+    pub per_robot_breakdown: bool,
+    /// Generate per-station breakdown reports
+    #[serde(default)]
+    pub per_station_breakdown: bool,
+    /// Generate heatmap data for congestion visualization
+    #[serde(default)]
+    pub generate_heatmap: bool,
+    /// Event trace configuration
+    #[serde(default)]
+    pub trace: TraceConfig,
+}
+
+/// Event trace configuration (v3)
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct TraceConfig {
+    /// Enable event tracing
+    #[serde(default)]
+    pub enabled: bool,
+    /// Maximum entries to keep in the trace buffer
+    #[serde(default = "default_trace_max_entries")]
+    pub max_entries: usize,
+    /// Sample rate (1.0 = all events, 0.1 = 10% of events)
+    #[serde(default = "default_trace_sample_rate")]
+    pub sample_rate: f64,
 }
 
 fn default_sample_interval() -> f64 {
@@ -462,14 +672,107 @@ fn default_congestion_top_n() -> usize {
     10
 }
 
+fn default_trace_max_entries() -> usize {
+    10000
+}
+
+fn default_trace_sample_rate() -> f64 {
+    1.0
+}
+
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            max_entries: default_trace_max_entries(),
+            sample_rate: default_trace_sample_rate(),
+        }
+    }
+}
+
 impl Default for MetricsConfig {
     fn default() -> Self {
         Self {
             sample_interval_s: default_sample_interval(),
             congestion_top_n: default_congestion_top_n(),
             track_sla: false,
+            per_robot_breakdown: false,
+            per_station_breakdown: false,
+            generate_heatmap: false,
+            trace: TraceConfig::default(),
         }
     }
+}
+
+// === v3: Robot Maintenance & Failure Configuration ===
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RobotMaintenanceConfig {
+    /// Enable scheduled maintenance
+    #[serde(default)]
+    pub enabled: bool,
+    /// Maintenance interval in hours (default: 8.0)
+    #[serde(default = "default_maintenance_interval")]
+    pub interval_hours: f64,
+}
+
+fn default_maintenance_interval() -> f64 {
+    8.0 // 8 hours between scheduled maintenance
+}
+
+impl Default for RobotMaintenanceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            interval_hours: default_maintenance_interval(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FailureConfig {
+    /// Enable random failures
+    #[serde(default)]
+    pub enabled: bool,
+    /// Mean Time Between Failures in hours (default: 100.0)
+    #[serde(default = "default_mtbf")]
+    pub mtbf_hours: f64,
+}
+
+fn default_mtbf() -> f64 {
+    100.0 // 100 hours MTBF by default
+}
+
+impl Default for FailureConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mtbf_hours: default_mtbf(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MaintenanceStationConfig {
+    pub id: String,
+    pub node: String,
+    #[serde(default = "default_maintenance_bays")]
+    pub bays: u32,
+    /// Duration for scheduled maintenance in seconds
+    #[serde(default = "default_maintenance_duration")]
+    pub maintenance_duration_s: f64,
+    /// Repair time model (for variable repair durations)
+    #[serde(default)]
+    pub repair_time: ServiceTimeConfig,
+    pub queue_capacity: Option<u32>,
+}
+
+fn default_maintenance_bays() -> u32 {
+    2
+}
+
+fn default_maintenance_duration() -> f64 {
+    300.0 // 5 minutes for scheduled maintenance
 }
 
 impl ScenarioConfig {

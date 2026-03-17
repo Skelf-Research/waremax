@@ -25,10 +25,29 @@ pub struct EdgeConfig {
     pub from: String,
     pub to: String,
     pub length_m: f64,
+    /// Legacy field for backward compatibility (defaults to true)
     #[serde(default = "default_true")]
     pub bidirectional: bool,
+    /// v2: Explicit direction ("one_way" | "bidirectional"), takes precedence over bidirectional
+    #[serde(default)]
+    pub direction: Option<String>,
     #[serde(default = "default_capacity")]
     pub capacity: u32,
+}
+
+impl EdgeConfig {
+    /// Check if this edge should be treated as one-way
+    ///
+    /// Returns true for one-way edges, false for bidirectional.
+    /// If `direction` field is set, it takes precedence.
+    /// Otherwise, uses the legacy `bidirectional` field.
+    pub fn is_one_way(&self) -> bool {
+        if let Some(dir) = &self.direction {
+            dir == "one_way"
+        } else {
+            !self.bidirectional
+        }
+    }
 }
 
 fn default_true() -> bool {

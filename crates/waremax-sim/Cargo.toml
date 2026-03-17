@@ -12,3 +12,4 @@ waremax-entities = { workspace = true }
 waremax-policies = { workspace = true }
 waremax-config = { workspace = true }
 waremax-metrics = { workspace = true }
+waremax-analysis = { workspace = true }
