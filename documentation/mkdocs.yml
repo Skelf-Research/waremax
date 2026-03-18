@@ -1,0 +1,258 @@
+site_name: Waremax Documentation
+site_description: Warehouse Robot Simulation Framework - Planning and optimization for multi-robot warehouse operations
+site_author: Waremax Team
+site_url: https://waremax.github.io/waremax/
+
+repo_name: waremax/waremax
+repo_url: https://github.com/waremax/waremax
+
+copyright: Copyright &copy; 2024-2026 Waremax Team
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/robot-industrial
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/waremax/waremax
+  generator: false
+
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: waremax
+      repo: waremax
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+
+  - Getting Started:
+    - getting-started/index.md
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Your First Simulation: getting-started/first-simulation.md
+    - Understanding Output: getting-started/understanding-output.md
+
+  - User Guide:
+    - user-guide/index.md
+    - Running Simulations: user-guide/running-simulations.md
+    - Scenario Files: user-guide/scenario-files.md
+    - Map Configuration: user-guide/map-configuration.md
+    - Storage Configuration: user-guide/storage-configuration.md
+    - Working with Presets: user-guide/presets.md
+    - Export Formats: user-guide/export-formats.md
+
+  - CLI Reference:
+    - cli/index.md
+    - run: cli/run.md
+    - validate: cli/validate.md
+    - demo: cli/demo.md
+    - generate: cli/generate.md
+    - sweep: cli/sweep.md
+    - compare: cli/compare.md
+    - ab-test: cli/ab-test.md
+    - benchmark: cli/benchmark.md
+    - stress-test: cli/stress-test.md
+    - analyze: cli/analyze.md
+    - list-presets: cli/list-presets.md
+
+  - Configuration Reference:
+    - configuration/index.md
+    - Scenario Schema: configuration/scenario-schema.md
+    - Simulation Settings: configuration/simulation.md
+    - Robot Configuration: configuration/robots.md
+    - Station Configuration: configuration/stations.md
+    - Order Configuration: configuration/orders.md
+    - Policy Configuration: configuration/policies.md
+    - Traffic Configuration: configuration/traffic.md
+    - Routing Configuration: configuration/routing.md
+    - Battery & Charging: configuration/battery.md
+    - Maintenance & Failures: configuration/maintenance.md
+    - Metrics Configuration: configuration/metrics.md
+
+  - Concepts:
+    - concepts/index.md
+    - Simulation Model:
+      - concepts/simulation/index.md
+      - Discrete Event Simulation: concepts/simulation/discrete-event.md
+      - Time Model: concepts/simulation/time-model.md
+      - Event Types: concepts/simulation/events.md
+      - Determinism & Seeds: concepts/simulation/determinism.md
+    - Warehouse Model:
+      - concepts/warehouse/index.md
+      - Graph-Based Maps: concepts/warehouse/maps.md
+      - Nodes & Edges: concepts/warehouse/nodes-edges.md
+      - Storage & Inventory: concepts/warehouse/storage.md
+      - Stations: concepts/warehouse/stations.md
+    - Robot Operations:
+      - concepts/robots/index.md
+      - Movement & Routing: concepts/robots/movement.md
+      - Task Lifecycle: concepts/robots/task-lifecycle.md
+      - Battery Management: concepts/robots/battery.md
+      - Maintenance & Failures: concepts/robots/maintenance.md
+    - Traffic Management:
+      - concepts/traffic/index.md
+      - Capacity Constraints: concepts/traffic/capacity.md
+      - Congestion Handling: concepts/traffic/congestion.md
+      - Deadlock Detection: concepts/traffic/deadlock.md
+      - Reservation System: concepts/traffic/reservations.md
+    - Policies:
+      - concepts/policies/index.md
+      - Task Allocation: concepts/policies/task-allocation.md
+      - Station Assignment: concepts/policies/station-assignment.md
+      - Batching: concepts/policies/batching.md
+      - Priority Arbitration: concepts/policies/priority.md
+      - Traffic Policies: concepts/policies/traffic-policies.md
+    - Metrics & Analysis:
+      - concepts/metrics/index.md
+      - Key Performance Indicators: concepts/metrics/kpis.md
+      - Time Series Data: concepts/metrics/timeseries.md
+      - Congestion Hotspots: concepts/metrics/congestion.md
+      - Root Cause Analysis: concepts/metrics/rca.md
+
+  - Tutorials:
+    - tutorials/index.md
+    - Basic Workflows:
+      - tutorials/basic/running-first-sim.md
+      - tutorials/basic/creating-scenarios.md
+      - tutorials/basic/analyzing-results.md
+    - Configuration Deep Dives:
+      - tutorials/config/custom-map.md
+      - tutorials/config/tuning-policies.md
+      - tutorials/config/battery-scenarios.md
+    - Testing & Benchmarking:
+      - tutorials/testing/parameter-sweeps.md
+      - tutorials/testing/ab-testing-guide.md
+      - tutorials/testing/benchmark-suite.md
+      - tutorials/testing/regression-detection.md
+    - Advanced Analysis:
+      - tutorials/analysis/rca-walkthrough.md
+      - tutorials/analysis/bottleneck-identification.md
+      - tutorials/analysis/capacity-planning.md
+
+  - Developer Guide:
+    - developer/index.md
+    - Architecture:
+      - developer/architecture/overview.md
+      - developer/architecture/crate-structure.md
+      - developer/architecture/data-flow.md
+    - Extending Waremax:
+      - developer/extending/custom-policies.md
+      - developer/extending/custom-distributions.md
+      - developer/extending/new-entity-types.md
+    - API Reference:
+      - developer/api/index.md
+      - waremax-core: developer/api/core.md
+      - waremax-map: developer/api/map.md
+      - waremax-storage: developer/api/storage.md
+      - waremax-entities: developer/api/entities.md
+      - waremax-policies: developer/api/policies.md
+      - waremax-config: developer/api/config.md
+      - waremax-metrics: developer/api/metrics.md
+      - waremax-sim: developer/api/sim.md
+      - waremax-testing: developer/api/testing.md
+      - waremax-analysis: developer/api/analysis.md
+    - Contributing:
+      - developer/contributing/index.md
+      - developer/contributing/code-style.md
+      - developer/contributing/testing-guidelines.md
+      - developer/contributing/documentation.md
+
+  - Examples:
+    - examples/index.md
+    - Scenario Examples: examples/scenarios.md
+    - Policy Comparisons: examples/policy-comparisons.md
+    - Capacity Studies: examples/capacity-studies.md
+
+  - FAQ: faq.md
+  - Changelog: changelog.md
