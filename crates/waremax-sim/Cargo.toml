@@ -13,3 +13,5 @@ waremax-policies = { workspace = true }
 waremax-config = { workspace = true }
 waremax-metrics = { workspace = true }
 waremax-analysis = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -68,6 +68,9 @@ pub struct Edge {
     pub capacity: u32,
     /// v2: Direction of travel allowed on this edge
     pub direction: EdgeDirection,
+    /// v2: Speed multiplier for routing cost calculation
+    /// 1.0 = normal, <1.0 = express/faster, >1.0 = slower/restricted
+    pub speed_multiplier: f64,
 }
 
 impl Edge {
@@ -79,6 +82,7 @@ impl Edge {
             length_m,
             capacity: 1,
             direction: EdgeDirection::Bidirectional,
+            speed_multiplier: 1.0,
         }
     }
 
@@ -91,6 +95,14 @@ impl Edge {
     /// Set the capacity for this edge (builder pattern)
     pub fn with_capacity(mut self, capacity: u32) -> Self {
         self.capacity = capacity;
+        self
+    }
+
+    /// Set the speed multiplier for this edge (builder pattern)
+    /// Values < 1.0 make the edge faster (express lane)
+    /// Values > 1.0 make the edge slower (restricted)
+    pub fn with_speed_multiplier(mut self, multiplier: f64) -> Self {
+        self.speed_multiplier = multiplier;
         self
     }
 }
@@ -144,6 +156,7 @@ impl WarehouseMap {
                     length_m: length,
                     capacity: edge.capacity,
                     direction: EdgeDirection::OneWay, // Reverse edge is one-way
+                    speed_multiplier: edge.speed_multiplier, // Copy speed multiplier
                 },
             );
         }

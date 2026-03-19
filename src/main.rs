@@ -246,6 +246,17 @@ enum Commands {
         #[arg(long, default_value = "2.0")]
         anomaly_threshold: f64,
     },
+
+    /// Launch interactive web UI for simulation visualization
+    Ui {
+        /// Port to serve on
+        #[arg(short, long, default_value = "8080")]
+        port: u16,
+
+        /// Open browser automatically
+        #[arg(long, default_value = "true")]
+        open: bool,
+    },
 }
 
 fn main() {
@@ -355,6 +366,11 @@ fn main() {
             anomaly_threshold,
         } => {
             run_analyze(&scenario, output.as_deref(), &format, detailed, anomaly_threshold);
+        }
+
+        // v6: Interactive Web UI
+        Commands::Ui { port, open } => {
+            run_ui(port, open);
         }
     }
 }
@@ -1600,4 +1616,24 @@ fn run_analyze(
     println!("  Primary Issue: {}", rca_report.summary.primary_delay_source);
     println!("  Bottlenecks Found: {}", rca_report.bottleneck_analysis.summary.total_count);
     println!("  Anomalies Detected: {}", rca_report.summary.anomaly_count);
+}
+
+// =============================================================================
+// v6: Interactive Web UI
+// =============================================================================
+
+fn run_ui(port: u16, open: bool) {
+    let config = waremax_ui::ServerConfig {
+        port,
+        open_browser: open,
+        ..Default::default()
+    };
+
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+    rt.block_on(async {
+        if let Err(e) = waremax_ui::run_server(config).await {
+            eprintln!("Server error: {}", e);
+            std::process::exit(1);
+        }
+    });
 }

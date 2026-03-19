@@ -11,6 +11,7 @@ members = [
     "crates/waremax-sim",
     "crates/waremax-testing",
     "crates/waremax-analysis",
+    "crates/waremax-ui",
 ]
 
 [workspace.package]
@@ -55,6 +56,7 @@ waremax-metrics = { path = "crates/waremax-metrics" }
 waremax-sim = { path = "crates/waremax-sim" }
 waremax-testing = { path = "crates/waremax-testing" }
 waremax-analysis = { path = "crates/waremax-analysis" }
+waremax-ui = { path = "crates/waremax-ui" }
 
 [package]
 name = "waremax"
@@ -76,8 +78,10 @@ waremax-metrics = { workspace = true }
 waremax-sim = { workspace = true }
 waremax-testing = { workspace = true }
 waremax-analysis = { workspace = true }
+waremax-ui = { workspace = true }
 mimalloc = { workspace = true }
 clap = { workspace = true }
 anyhow = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
+tokio = { version = "1.0", features = ["full"] }

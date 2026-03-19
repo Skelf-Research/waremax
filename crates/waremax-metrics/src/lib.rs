@@ -5,6 +5,10 @@ pub mod export;
 pub mod report;
 pub mod timeseries;
 pub mod trace;
+pub mod charts;
+pub mod html_report;
+pub mod pdf_report;
+pub mod event_log;
 
 pub use collector::{MetricsCollector, SLAMetrics};
 pub use export::{
@@ -21,3 +25,7 @@ pub use timeseries::{
     CongestionMetrics, CongestionRanking, DataPoint,
 };
 pub use trace::{EventTraceCollector, TraceEntry, TraceDetails};
+pub use charts::{ChartGenerator, ChartConfig, ChartFormat};
+pub use html_report::HtmlReportGenerator;
+pub use pdf_report::PdfReportGenerator;
+pub use event_log::{EventLog, EventLogConfig, EventLogWriter, EventLogReader};

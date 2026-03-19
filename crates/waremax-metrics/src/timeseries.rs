@@ -335,6 +335,16 @@ impl TimeSeriesCollector {
     pub fn total_edge_wait_time(&self) -> f64 {
         self.edge_congestion.values().map(|m| m.total_wait_time_s).sum()
     }
+
+    /// Get all station time-series data (v3: for chart generation)
+    pub fn get_all_station_data(&self) -> &HashMap<StationId, StationTimeSeriesData> {
+        &self.station_series
+    }
+
+    /// Get all charging station time-series data (v3: for chart generation)
+    pub fn get_all_charging_data(&self) -> &HashMap<ChargingStationId, ChargingTimeSeriesData> {
+        &self.charging_series
+    }
 }
 
 #[cfg(test)]
