@@ -66,7 +66,12 @@ export function useWarehouseCanvas(
   function render() {
     const canvas = canvasRef.value
     const map = mapData.value
-    if (!canvas || !map) return
+
+    // Always schedule next frame to keep the loop alive
+    animationId = requestAnimationFrame(render)
+
+    // Early return if no canvas or map, but loop continues
+    if (!canvas) return
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -74,20 +79,34 @@ export function useWarehouseCanvas(
     // Handle high-DPI displays
     const dpr = window.devicePixelRatio || 1
     const rect = canvas.getBoundingClientRect()
+
+    // Skip rendering if canvas has no size yet
+    if (rect.width === 0 || rect.height === 0) return
+
     canvas.width = rect.width * dpr
     canvas.height = rect.height * dpr
     ctx.scale(dpr, dpr)
-
-    computeTransform(canvas, map)
 
     // Scale back for drawing
     const drawScale = 1 / dpr
     ctx.save()
     ctx.scale(drawScale, drawScale)
 
-    // Clear
+    // Clear with dark background
     ctx.fillStyle = '#0f172a'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    // If no map data yet, show loading state
+    if (!map || map.nodes.length === 0) {
+      ctx.fillStyle = '#64748b'
+      ctx.font = '16px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('Waiting for map data...', canvas.width / (2 * dpr), canvas.height / (2 * dpr))
+      ctx.restore()
+      return
+    }
+
+    computeTransform(canvas, map)
 
     // Draw edges
     drawEdges(ctx, map)
@@ -102,8 +121,6 @@ export function useWarehouseCanvas(
     drawRobots(ctx)
 
     ctx.restore()
-
-    animationId = requestAnimationFrame(render)
   }
 
   function drawEdges(ctx: CanvasRenderingContext2D, map: MapData) {
