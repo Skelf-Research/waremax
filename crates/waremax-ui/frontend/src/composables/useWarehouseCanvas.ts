@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import type { MapData, NodeData, RobotState, StationState } from '../stores/simulation'
 
 const ROBOT_COLORS: Record<string, string> = {
@@ -14,7 +14,7 @@ const ROBOT_COLORS: Record<string, string> = {
 
 const NODE_COLORS: Record<string, string> = {
   Aisle: '#334155',
-  Rack: '#475569',
+  Rack: '#92400e',      // Amber/brown for storage racks - distinct from aisles
   StationPick: '#22c55e',
   StationDrop: '#3b82f6',
   StationInbound: '#f59e0b',
@@ -32,9 +32,6 @@ export function useWarehouseCanvas(
   let animationId: number | null = null
   let nodePositions = new Map<number, { x: number; y: number }>()
   let stationNodeSet = new Set<number>()
-
-  // Robot smooth animation state
-  let robotPositions = new Map<number, { x: number; y: number; targetX: number; targetY: number }>()
 
   const padding = 40
   let scale = 1
@@ -196,24 +193,9 @@ export function useWarehouseCanvas(
 
   function drawRobots(ctx: CanvasRenderingContext2D) {
     for (const robot of robots.value) {
-      const targetPos = nodePositions.get(robot.node_id)
-      if (!targetPos) continue
-
-      // Get or initialize smooth position
-      let pos = robotPositions.get(robot.id)
-      if (!pos) {
-        pos = { x: targetPos.x, y: targetPos.y, targetX: targetPos.x, targetY: targetPos.y }
-        robotPositions.set(robot.id, pos)
-      }
-
-      // Update target
-      pos.targetX = targetPos.x
-      pos.targetY = targetPos.y
-
-      // Interpolate towards target
-      const lerp = 0.15
-      pos.x += (pos.targetX - pos.x) * lerp
-      pos.y += (pos.targetY - pos.y) * lerp
+      // Use exact node position (no interpolation - shows true simulation state)
+      const pos = nodePositions.get(robot.node_id)
+      if (!pos) continue
 
       const state = robot.is_failed ? 'Failed' : robot.state
       const color = ROBOT_COLORS[state] || '#94a3b8'
@@ -273,11 +255,6 @@ export function useWarehouseCanvas(
 
   onUnmounted(() => {
     stopRendering()
-  })
-
-  // Re-render when map data changes
-  watch(mapData, () => {
-    robotPositions.clear()
   })
 
   return { startRendering, stopRendering }
