@@ -1,40 +1,42 @@
 //! Waremax Policies - Pluggable policies for task allocation, station assignment, etc.
 
-pub mod traits;
 pub mod allocation;
-pub mod station;
 pub mod batching;
-pub mod priority;
-pub mod destination;
-pub mod traffic;
 pub mod deadlock;
+pub mod destination;
+pub mod priority;
+pub mod station;
+pub mod traffic;
+pub mod traits;
 
 pub use traits::*;
 
 // Task allocation policies
-pub use allocation::{NearestRobotPolicy, RoundRobinPolicy, LeastBusyPolicy};
-pub use allocation::{AuctionPolicy, WorkloadBalancedPolicy}; // v1
+pub use allocation::{AuctionPolicy, WorkloadBalancedPolicy};
+pub use allocation::{LeastBusyPolicy, NearestRobotPolicy, RoundRobinPolicy}; // v1
 
 // Station assignment policies
-pub use station::{LeastQueuePolicy, NearestStationPolicy};
-pub use station::{FastestServicePolicy, DueTimePriorityStationPolicy}; // v1
+pub use station::{DueTimePriorityStationPolicy, FastestServicePolicy};
+pub use station::{LeastQueuePolicy, NearestStationPolicy}; // v1
 
 // Batching policies
-pub use batching::{NoBatchingPolicy, ZoneBatchingPolicy};
-pub use batching::StationBatchPolicy; // v1
+pub use batching::StationBatchPolicy;
+pub use batching::{NoBatchingPolicy, ZoneBatchingPolicy}; // v1
 
 // Priority policies
-pub use priority::{StrictPriorityPolicy, FifoPolicy, DueTimePolicy};
-pub use priority::WeightedFairPolicy; // v1
+pub use priority::WeightedFairPolicy;
+pub use priority::{DueTimePolicy, FifoPolicy, StrictPriorityPolicy}; // v1
 
 // Destination policies (v1)
-pub use destination::{DestinationPolicy, DestinationContext, NearestEmptyBinPolicy};
+pub use destination::{DestinationContext, DestinationPolicy, NearestEmptyBinPolicy};
 
 // Traffic policies (v1)
-pub use traffic::{TrafficPolicy, TrafficPolicyContext, TrafficAction};
-pub use traffic::{WaitAtNodePolicy, RerouteOnWaitPolicy, AdaptiveTrafficPolicy};
+pub use traffic::{AdaptiveTrafficPolicy, RerouteOnWaitPolicy, WaitAtNodePolicy};
+pub use traffic::{TrafficAction, TrafficPolicy, TrafficPolicyContext};
 
 // Deadlock resolution policies (v2)
-pub use deadlock::{DeadlockResolver, DeadlockResolution, DeadlockContext};
-pub use deadlock::{YoungestRobotBacksUp, LowestPriorityAborts, WaitAndRetryResolver, TieredResolver};
 pub use deadlock::create_deadlock_resolver;
+pub use deadlock::{DeadlockContext, DeadlockResolution, DeadlockResolver};
+pub use deadlock::{
+    LowestPriorityAborts, TieredResolver, WaitAndRetryResolver, YoungestRobotBacksUp,
+};

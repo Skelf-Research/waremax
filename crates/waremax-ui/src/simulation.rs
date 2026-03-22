@@ -6,14 +6,14 @@
 use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, mpsc};
 
-use waremax_core::{Kernel, SimTime, SimEvent, RobotId, NodeId, ScheduledEvent};
+use waremax_config::ScenarioConfig;
+use waremax_core::{Kernel, NodeId, RobotId, ScheduledEvent, SimEvent, SimTime};
 use waremax_entities::Robot;
 use waremax_metrics::MetricsCollector;
-use waremax_sim::{World, EventHandler};
-use waremax_config::ScenarioConfig;
+use waremax_sim::{EventHandler, World};
 use waremax_testing::ScenarioBuilder;
 
-use crate::types::{SimulationStatus, SimulationState, RobotState, StationState, MetricsSnapshot};
+use crate::types::{MetricsSnapshot, RobotState, SimulationState, SimulationStatus, StationState};
 
 /// Control commands sent to the simulation task
 #[derive(Clone, Debug)]
@@ -31,10 +31,27 @@ pub enum SimCommand {
 #[derive(Clone, Debug)]
 pub enum SimUpdate {
     StateChanged(SimulationState),
-    Tick { time_s: f64, events_processed: u64 },
-    RobotMoved { robot_id: u32, from_node: u32, to_node: u32, time_s: f64 },
-    RobotStateChanged { robot_id: u32, old_state: String, new_state: String, time_s: f64 },
-    OrderCompleted { order_id: u32, cycle_time_s: f64, on_time: bool },
+    Tick {
+        time_s: f64,
+        events_processed: u64,
+    },
+    RobotMoved {
+        robot_id: u32,
+        from_node: u32,
+        to_node: u32,
+        time_s: f64,
+    },
+    RobotStateChanged {
+        robot_id: u32,
+        old_state: String,
+        new_state: String,
+        time_s: f64,
+    },
+    OrderCompleted {
+        order_id: u32,
+        cycle_time_s: f64,
+        on_time: bool,
+    },
     MetricsUpdate(MetricsSnapshot),
     Finished(MetricsSnapshot),
     Error(String),
@@ -100,7 +117,9 @@ impl ControllableSimulation {
 
         let world = build_world_from_config(&scenario, seed);
 
-        let end_time = SimTime::from_minutes(scenario.simulation.warmup_minutes + scenario.simulation.duration_minutes);
+        let end_time = SimTime::from_minutes(
+            scenario.simulation.warmup_minutes + scenario.simulation.duration_minutes,
+        );
         let warmup_time = SimTime::from_minutes(scenario.simulation.warmup_minutes);
 
         Self {
@@ -160,7 +179,9 @@ impl ControllableSimulation {
     pub fn initialize(&mut self) {
         // Schedule first order arrival
         let first_order_id = self.world.next_order_id();
-        self.kernel.schedule_now(SimEvent::OrderArrival { order_id: first_order_id });
+        self.kernel.schedule_now(SimEvent::OrderArrival {
+            order_id: first_order_id,
+        });
 
         // Place robots at their starting positions
         for robot in self.world.robots.values() {
@@ -170,7 +191,8 @@ impl ControllableSimulation {
         // Schedule first metrics sample tick
         if self.world.metrics_sample_interval_s > 0.0 {
             let sample_time = SimTime::from_seconds(self.world.metrics_sample_interval_s);
-            self.kernel.schedule_after(sample_time, SimEvent::MetricsSampleTick);
+            self.kernel
+                .schedule_after(sample_time, SimEvent::MetricsSampleTick);
         }
     }
 
@@ -179,7 +201,9 @@ impl ControllableSimulation {
         self.initialize();
 
         // Send initial state
-        let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+        let _ = self
+            .update_tx
+            .send(SimUpdate::StateChanged(self.get_state()));
 
         // Track wall-clock time for proper pacing
         let mut last_frame = Instant::now();
@@ -209,7 +233,9 @@ impl ControllableSimulation {
             if self.paused {
                 // When paused, send state updates less frequently
                 if self.last_update.elapsed() >= Duration::from_millis(500) {
-                    let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                    let _ = self
+                        .update_tx
+                        .send(SimUpdate::StateChanged(self.get_state()));
                     self.last_update = Instant::now();
                 }
                 tokio::time::sleep(Duration::from_millis(50)).await;
@@ -219,7 +245,9 @@ impl ControllableSimulation {
             // Check if simulation is finished
             if !self.kernel.has_events() || self.kernel.now() >= self.end_time {
                 let final_metrics = self.compute_metrics();
-                let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                let _ = self
+                    .update_tx
+                    .send(SimUpdate::StateChanged(self.get_state()));
                 let _ = self.update_tx.send(SimUpdate::Finished(final_metrics));
                 break;
             }
@@ -227,7 +255,8 @@ impl ControllableSimulation {
             // Calculate target simulation time based on wall-clock elapsed time
             let wall_elapsed = wall_time_anchor.elapsed().as_secs_f64();
             let target_sim_time = sim_time_anchor + (wall_elapsed * self.speed);
-            let target_time = SimTime::from_seconds(target_sim_time.min(self.end_time.as_seconds()));
+            let target_time =
+                SimTime::from_seconds(target_sim_time.min(self.end_time.as_seconds()));
 
             // Process events up to target time
             let mut events_this_frame = 0u64;
@@ -254,7 +283,12 @@ impl ControllableSimulation {
                     self.track_event_for_ui(&event);
 
                     // Handle the event
-                    self.handler.handle(&mut self.kernel, &mut self.world, &event, &mut self.metrics);
+                    self.handler.handle(
+                        &mut self.kernel,
+                        &mut self.world,
+                        &event,
+                        &mut self.metrics,
+                    );
 
                     self.events_processed += 1;
                     events_this_frame += 1;
@@ -263,7 +297,9 @@ impl ControllableSimulation {
 
             // Send state updates at frame rate
             if self.last_update.elapsed() >= self.update_interval {
-                let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                let _ = self
+                    .update_tx
+                    .send(SimUpdate::StateChanged(self.get_state()));
                 self.last_update = Instant::now();
             }
 
@@ -281,15 +317,21 @@ impl ControllableSimulation {
         match cmd {
             SimCommand::Pause => {
                 self.paused = true;
-                let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                let _ = self
+                    .update_tx
+                    .send(SimUpdate::StateChanged(self.get_state()));
             }
             SimCommand::Resume => {
                 self.paused = false;
-                let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                let _ = self
+                    .update_tx
+                    .send(SimUpdate::StateChanged(self.get_state()));
             }
             SimCommand::SetSpeed(speed) => {
                 self.speed = speed.clamp(0.1, 100.0);
-                let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                let _ = self
+                    .update_tx
+                    .send(SimUpdate::StateChanged(self.get_state()));
             }
             SimCommand::Step => {
                 // Process exactly one event
@@ -298,17 +340,28 @@ impl ControllableSimulation {
                         self.metrics.record_event(&event);
                     }
                     self.track_event_for_ui(&event);
-                    self.handler.handle(&mut self.kernel, &mut self.world, &event, &mut self.metrics);
+                    self.handler.handle(
+                        &mut self.kernel,
+                        &mut self.world,
+                        &event,
+                        &mut self.metrics,
+                    );
                     self.events_processed += 1;
                 }
-                let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                let _ = self
+                    .update_tx
+                    .send(SimUpdate::StateChanged(self.get_state()));
             }
             SimCommand::AddRobot { node_id } => {
                 self.add_robot(node_id);
-                let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                let _ = self
+                    .update_tx
+                    .send(SimUpdate::StateChanged(self.get_state()));
             }
             SimCommand::GetState => {
-                let _ = self.update_tx.send(SimUpdate::StateChanged(self.get_state()));
+                let _ = self
+                    .update_tx
+                    .send(SimUpdate::StateChanged(self.get_state()));
             }
             SimCommand::Stop => {
                 return false;
@@ -320,7 +373,11 @@ impl ControllableSimulation {
     /// Track events for UI updates
     fn track_event_for_ui(&mut self, event: &ScheduledEvent) {
         match &event.event {
-            SimEvent::RobotArriveNode { robot_id, node_id, from_node } => {
+            SimEvent::RobotArriveNode {
+                robot_id,
+                node_id,
+                from_node,
+            } => {
                 let _ = self.update_tx.send(SimUpdate::RobotMoved {
                     robot_id: robot_id.0,
                     from_node: from_node.0,
@@ -332,9 +389,7 @@ impl ControllableSimulation {
                 // Get cycle time from completed order
                 if let Some(order) = self.world.orders.get(order_id) {
                     self.orders_completed += 1;
-                    let cycle_time_s = order.cycle_time()
-                        .map(|t| t.as_seconds())
-                        .unwrap_or(0.0);
+                    let cycle_time_s = order.cycle_time().map(|t| t.as_seconds()).unwrap_or(0.0);
                     let on_time = !order.is_late(self.kernel.now());
                     let _ = self.update_tx.send(SimUpdate::OrderCompleted {
                         order_id: order_id.0,
@@ -352,7 +407,13 @@ impl ControllableSimulation {
         let new_id = RobotId(self.world.robots.len() as u32);
         let start_node = node_id.map(NodeId).unwrap_or_else(|| {
             // Find a node that isn't too crowded
-            self.world.map.nodes.keys().next().copied().unwrap_or(NodeId(0))
+            self.world
+                .map
+                .nodes
+                .keys()
+                .next()
+                .copied()
+                .unwrap_or(NodeId(0))
         });
 
         let robot = Robot::new(new_id, start_node, 1.5, 25.0);
@@ -370,19 +431,33 @@ impl ControllableSimulation {
             SimulationStatus::Running
         };
 
-        let robots: Vec<RobotState> = self.world.robots.values().map(|r| {
-            RobotState {
+        let robots: Vec<RobotState> = self
+            .world
+            .robots
+            .values()
+            .map(|r| RobotState {
                 id: r.id.0,
                 node_id: r.current_node.0,
-                state: format!("{:?}", r.state).split_whitespace().next().unwrap_or("Unknown").to_string(),
-                battery_soc: if r.battery.capacity_wh > 0.0 { Some(r.battery.soc) } else { None },
+                state: format!("{:?}", r.state)
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("Unknown")
+                    .to_string(),
+                battery_soc: if r.battery.capacity_wh > 0.0 {
+                    Some(r.battery.soc)
+                } else {
+                    None
+                },
                 current_task: r.current_task.map(|t| t.0),
                 is_failed: r.maintenance.is_failed,
-            }
-        }).collect();
+            })
+            .collect();
 
-        let stations: Vec<StationState> = self.world.stations.values().map(|s| {
-            StationState {
+        let stations: Vec<StationState> = self
+            .world
+            .stations
+            .values()
+            .map(|s| StationState {
                 id: s.id.0,
                 name: s.string_id.clone(),
                 node_id: s.node.0,
@@ -390,8 +465,8 @@ impl ControllableSimulation {
                 queue_length: s.queue.len(),
                 serving_count: s.serving.len(),
                 concurrency: s.concurrency,
-            }
-        }).collect();
+            })
+            .collect();
 
         SimulationState {
             status,
@@ -422,24 +497,33 @@ impl ControllableSimulation {
 
         // Calculate robot utilization
         let total_robot_time = total_sim_time * self.world.robots.len() as f64;
-        let total_active_time: f64 = self.world.robots.values()
+        let total_active_time: f64 = self
+            .world
+            .robots
+            .values()
             .map(|r| r.total_move_time.as_seconds() + r.total_service_time.as_seconds())
             .sum();
         let robot_utilization = if total_robot_time > 0.0 {
-            (total_active_time / total_robot_time).min(1.0)  // Cap at 100%
+            (total_active_time / total_robot_time).min(1.0) // Cap at 100%
         } else {
             0.0
         };
 
         // Calculate station utilization
-        let total_station_capacity: f64 = self.world.stations.values()
+        let total_station_capacity: f64 = self
+            .world
+            .stations
+            .values()
             .map(|s| s.concurrency as f64 * total_sim_time)
             .sum();
-        let total_station_busy: f64 = self.world.stations.values()
+        let total_station_busy: f64 = self
+            .world
+            .stations
+            .values()
             .map(|s| s.total_service_time.as_seconds())
             .sum();
         let station_utilization = if total_station_capacity > 0.0 {
-            (total_station_busy / total_station_capacity).min(1.0)  // Cap at 100%
+            (total_station_busy / total_station_capacity).min(1.0) // Cap at 100%
         } else {
             0.0
         };
@@ -447,7 +531,12 @@ impl ControllableSimulation {
         MetricsSnapshot {
             throughput_per_hour: throughput,
             orders_completed: self.orders_completed,
-            orders_pending: self.world.orders.values().filter(|o| !o.is_complete()).count() as u64,
+            orders_pending: self
+                .world
+                .orders
+                .values()
+                .filter(|o| !o.is_complete())
+                .count() as u64,
             robot_utilization,
             station_utilization,
             avg_cycle_time_s: self.metrics.avg_cycle_time(),
@@ -457,37 +546,47 @@ impl ControllableSimulation {
 
     /// Get the world map data for frontend rendering
     pub fn get_map_data(&self) -> crate::types::MapData {
-        use crate::types::{MapData, NodeData, EdgeData, MapBounds};
+        use crate::types::{EdgeData, MapBounds, MapData, NodeData};
 
         let mut min_x = f64::MAX;
         let mut max_x = f64::MIN;
         let mut min_y = f64::MAX;
         let mut max_y = f64::MIN;
 
-        let nodes: Vec<NodeData> = self.world.map.nodes.values().map(|n| {
-            min_x = min_x.min(n.x);
-            max_x = max_x.max(n.x);
-            min_y = min_y.min(n.y);
-            max_y = max_y.max(n.y);
+        let nodes: Vec<NodeData> = self
+            .world
+            .map
+            .nodes
+            .values()
+            .map(|n| {
+                min_x = min_x.min(n.x);
+                max_x = max_x.max(n.x);
+                min_y = min_y.min(n.y);
+                max_y = max_y.max(n.y);
 
-            NodeData {
-                id: n.id.0,
-                name: n.string_id.clone(),
-                x: n.x,
-                y: n.y,
-                node_type: format!("{:?}", n.node_type),
-            }
-        }).collect();
+                NodeData {
+                    id: n.id.0,
+                    name: n.string_id.clone(),
+                    x: n.x,
+                    y: n.y,
+                    node_type: format!("{:?}", n.node_type),
+                }
+            })
+            .collect();
 
-        let edges: Vec<EdgeData> = self.world.map.edges.values().map(|e| {
-            EdgeData {
+        let edges: Vec<EdgeData> = self
+            .world
+            .map
+            .edges
+            .values()
+            .map(|e| EdgeData {
                 id: e.id.0,
                 from: e.from.0,
                 to: e.to.0,
                 length: e.length_m,
                 bidirectional: matches!(e.direction, waremax_map::EdgeDirection::Bidirectional),
-            }
-        }).collect();
+            })
+            .collect();
 
         // Add padding to bounds
         let padding = 2.0;
@@ -506,18 +605,20 @@ impl ControllableSimulation {
 
 /// Build a World from ScenarioConfig (simplified version for UI)
 fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
-    use waremax_core::{NodeId, EdgeId, RobotId, StationId};
-    use waremax_entities::{Robot, Station, StationType, ServiceTimeModel, BatteryConsumptionModel};
-    use waremax_map::{WarehouseMap, Node, Edge, NodeType, Router, TrafficManager};
+    use waremax_core::{EdgeId, NodeId, RobotId, StationId};
+    use waremax_entities::{
+        BatteryConsumptionModel, Robot, ServiceTimeModel, Station, StationType,
+    };
+    use waremax_map::{Edge, Node, NodeType, Router, TrafficManager, WarehouseMap};
     use waremax_metrics::TimeSeriesCollector;
 
     let mut world = World::new(seed);
 
     // Determine grid size based on preset
     let grid_rows = match scenario.stations.len() {
-        0..=2 => 5,   // small preset
-        3..=5 => 10,  // standard preset
-        _ => 15,      // large preset
+        0..=2 => 5,  // small preset
+        3..=5 => 10, // standard preset
+        _ => 15,     // large preset
     };
     let grid_cols = grid_rows;
     let grid_size = grid_rows;
@@ -583,7 +684,7 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
             let node_type = if station_nodes.contains(&id) {
                 NodeType::StationPick
             } else if is_rack_position(row, col, grid_size) {
-                NodeType::Rack  // Interior storage nodes
+                NodeType::Rack // Interior storage nodes
             } else {
                 NodeType::Aisle
             };
@@ -598,12 +699,22 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
             let id = row * grid_size + col;
             if col < grid_size - 1 {
                 let neighbor = id + 1;
-                map.add_edge(Edge::new(EdgeId(edge_id), NodeId(id as u32), NodeId(neighbor as u32), spacing));
+                map.add_edge(Edge::new(
+                    EdgeId(edge_id),
+                    NodeId(id as u32),
+                    NodeId(neighbor as u32),
+                    spacing,
+                ));
                 edge_id += 1;
             }
             if row < grid_size - 1 {
                 let neighbor = id + grid_size;
-                map.add_edge(Edge::new(EdgeId(edge_id), NodeId(id as u32), NodeId(neighbor as u32), spacing));
+                map.add_edge(Edge::new(
+                    EdgeId(edge_id),
+                    NodeId(id as u32),
+                    NodeId(neighbor as u32),
+                    spacing,
+                ));
                 edge_id += 1;
             }
         }
@@ -622,7 +733,7 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
     for i in 0..scenario.robots.count {
         // Spread robots across the grid, avoiding station nodes initially
         let mut start_node = ((i * 7) % total_nodes) as u32; // Use prime multiplier for better spread
-        // Skip station nodes for initial placement
+                                                             // Skip station nodes for initial placement
         while station_nodes.contains(&start_node) {
             start_node = (start_node + 1) % total_nodes;
         }
@@ -702,7 +813,8 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
     world.distributions = waremax_sim::create_distributions(&scenario.orders);
 
     // Create policies
-    world.policies = waremax_sim::create_policies_with_traffic(&scenario.policies, &scenario.traffic);
+    world.policies =
+        waremax_sim::create_policies_with_traffic(&scenario.policies, &scenario.traffic);
 
     // Set metrics sample interval
     world.metrics_sample_interval_s = scenario.metrics.sample_interval_s;
@@ -724,7 +836,10 @@ pub struct SimulationHandle {
 
 impl SimulationHandle {
     /// Send a control command to the simulation
-    pub async fn send_command(&self, cmd: SimCommand) -> Result<(), mpsc::error::SendError<SimCommand>> {
+    pub async fn send_command(
+        &self,
+        cmd: SimCommand,
+    ) -> Result<(), mpsc::error::SendError<SimCommand>> {
         self.command_tx.send(cmd).await
     }
 
@@ -759,7 +874,10 @@ impl SimulationHandle {
     }
 
     /// Add a robot
-    pub async fn add_robot(&self, node_id: Option<u32>) -> Result<(), mpsc::error::SendError<SimCommand>> {
+    pub async fn add_robot(
+        &self,
+        node_id: Option<u32>,
+    ) -> Result<(), mpsc::error::SendError<SimCommand>> {
         self.send_command(SimCommand::AddRobot { node_id }).await
     }
 
@@ -775,7 +893,9 @@ impl SimulationHandle {
 }
 
 /// Spawn a new controllable simulation and return a handle to control it
-pub fn spawn_simulation(config: SimulationConfig) -> (SimulationHandle, tokio::task::JoinHandle<()>) {
+pub fn spawn_simulation(
+    config: SimulationConfig,
+) -> (SimulationHandle, tokio::task::JoinHandle<()>) {
     let (command_tx, command_rx) = mpsc::channel(32);
     let (update_tx, update_rx) = broadcast::channel(256);
 

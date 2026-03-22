@@ -4,12 +4,14 @@
 //! critical path analysis, and anomaly detection.
 
 use serde::{Deserialize, Serialize};
-use waremax_core::{RobotId, StationId, NodeId, EdgeId, ChargingStationId};
+use waremax_core::{ChargingStationId, EdgeId, NodeId, RobotId, StationId};
 
-use crate::attribution::{DelayAttributionSummary, TaskAttribution};
-use crate::bottleneck::{BottleneckAnalysis, BottleneckDetector, BottleneckInputData, BottleneckType};
-use crate::critical_path::{CriticalPathAnalysis, CriticalPathSummary};
 use crate::anomaly::{Anomaly, AnomalyDetector};
+use crate::attribution::{DelayAttributionSummary, TaskAttribution};
+use crate::bottleneck::{
+    BottleneckAnalysis, BottleneckDetector, BottleneckInputData, BottleneckType,
+};
+use crate::critical_path::{CriticalPathAnalysis, CriticalPathSummary};
 
 /// Summary of the root cause analysis
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -78,15 +80,30 @@ impl RootCauseAnalysisReport {
         output.push_str("SUMMARY\n");
         output.push_str(&"-".repeat(60));
         output.push_str("\n");
-        output.push_str(&format!("Orders Analyzed: {}\n", self.summary.orders_analyzed));
-        output.push_str(&format!("Average Cycle Time: {:.1}s\n", self.summary.avg_cycle_time_s));
-        output.push_str(&format!("Primary Delay Source: {}\n", self.summary.primary_delay_source));
+        output.push_str(&format!(
+            "Orders Analyzed: {}\n",
+            self.summary.orders_analyzed
+        ));
+        output.push_str(&format!(
+            "Average Cycle Time: {:.1}s\n",
+            self.summary.avg_cycle_time_s
+        ));
+        output.push_str(&format!(
+            "Primary Delay Source: {}\n",
+            self.summary.primary_delay_source
+        ));
         if let Some(ref bottleneck) = self.summary.primary_bottleneck {
             output.push_str(&format!("Primary Bottleneck: {}\n", bottleneck));
         }
-        output.push_str(&format!("Anomalies Detected: {}\n", self.summary.anomaly_count));
+        output.push_str(&format!(
+            "Anomalies Detected: {}\n",
+            self.summary.anomaly_count
+        ));
         output.push_str(&format!("Slow Orders: {}\n", self.summary.slow_order_count));
-        output.push_str(&format!("Health Score: {:.0}/100\n", self.summary.health_score));
+        output.push_str(&format!(
+            "Health Score: {:.0}/100\n",
+            self.summary.health_score
+        ));
         output.push_str(&format!("\nKey Finding: {}\n", self.summary.key_finding));
 
         // Delay Attribution section
@@ -95,20 +112,37 @@ impl RootCauseAnalysisReport {
         output.push_str("\n DELAY ATTRIBUTION \n");
         output.push_str(&"-".repeat(60));
         output.push_str("\n");
-        output.push_str(&format!("Tasks Analyzed: {}\n", self.delay_attribution.task_count));
-        output.push_str(&format!("Avg Cycle Time: {:.1}s\n", self.delay_attribution.avg_cycle_time_s));
-        output.push_str(&format!("Avg Waste Time: {:.1}s ({:.1}% of cycle)\n",
+        output.push_str(&format!(
+            "Tasks Analyzed: {}\n",
+            self.delay_attribution.task_count
+        ));
+        output.push_str(&format!(
+            "Avg Cycle Time: {:.1}s\n",
+            self.delay_attribution.avg_cycle_time_s
+        ));
+        output.push_str(&format!(
+            "Avg Waste Time: {:.1}s ({:.1}% of cycle)\n",
             self.delay_attribution.avg_waste_time_s,
-            self.delay_attribution.waste_ratio * 100.0));
+            self.delay_attribution.waste_ratio * 100.0
+        ));
 
         output.push_str("\nTime Breakdown:\n");
-        for (i, (cat, _total_s, pct)) in self.delay_attribution.ranked_categories.iter().enumerate().take(5) {
+        for (i, (cat, _total_s, pct)) in self
+            .delay_attribution
+            .ranked_categories
+            .iter()
+            .enumerate()
+            .take(5)
+        {
             output.push_str(&format!(
                 "  {}. {}: {:.1}% ({:.1}s avg)\n",
                 i + 1,
                 cat.name(),
                 pct,
-                self.delay_attribution.avg_by_category.get(cat).unwrap_or(&0.0)
+                self.delay_attribution
+                    .avg_by_category
+                    .get(cat)
+                    .unwrap_or(&0.0)
             ));
         }
 
@@ -118,14 +152,32 @@ impl RootCauseAnalysisReport {
         output.push_str("\n BOTTLENECK ANALYSIS \n");
         output.push_str(&"-".repeat(60));
         output.push_str("\n");
-        output.push_str(&format!("Total Bottlenecks: {}\n", self.bottleneck_analysis.summary.total_count));
-        output.push_str(&format!("  Congestion: {}\n", self.bottleneck_analysis.summary.congestion_count));
-        output.push_str(&format!("  Station: {}\n", self.bottleneck_analysis.summary.station_count));
-        output.push_str(&format!("  Robot: {}\n", self.bottleneck_analysis.summary.robot_count));
+        output.push_str(&format!(
+            "Total Bottlenecks: {}\n",
+            self.bottleneck_analysis.summary.total_count
+        ));
+        output.push_str(&format!(
+            "  Congestion: {}\n",
+            self.bottleneck_analysis.summary.congestion_count
+        ));
+        output.push_str(&format!(
+            "  Station: {}\n",
+            self.bottleneck_analysis.summary.station_count
+        ));
+        output.push_str(&format!(
+            "  Robot: {}\n",
+            self.bottleneck_analysis.summary.robot_count
+        ));
 
         if !self.bottleneck_analysis.bottlenecks.is_empty() {
             output.push_str("\nTop Bottlenecks:\n");
-            for (i, b) in self.bottleneck_analysis.bottlenecks.iter().take(5).enumerate() {
+            for (i, b) in self
+                .bottleneck_analysis
+                .bottlenecks
+                .iter()
+                .take(5)
+                .enumerate()
+            {
                 output.push_str(&format!(
                     "  {}. [{}] {}\n",
                     i + 1,
@@ -162,11 +214,7 @@ impl RootCauseAnalysisReport {
             output.push_str(&"-".repeat(60));
             output.push_str("\n");
             for rec in &self.recommendations {
-                output.push_str(&format!(
-                    "\n[Priority {}] {}\n",
-                    rec.priority,
-                    rec.category
-                ));
+                output.push_str(&format!("\n[Priority {}] {}\n", rec.priority, rec.category));
                 output.push_str(&format!("  {}\n", rec.text));
                 output.push_str(&format!("  Expected Impact: {}\n", rec.expected_impact));
             }
@@ -235,13 +283,17 @@ impl RootCauseAnalyzer {
 
         // 4. Anomaly Detection
         self.anomaly_detector.clear();
-        self.anomaly_detector.detect_slow_orders(&input.attributions);
+        self.anomaly_detector
+            .detect_slow_orders(&input.attributions);
 
         for (station_id, name, samples) in &input.station_queue_series {
-            self.anomaly_detector.detect_queue_spikes(*station_id, name, samples);
+            self.anomaly_detector
+                .detect_queue_spikes(*station_id, name, samples);
         }
 
-        let anomalies: Vec<Anomaly> = self.anomaly_detector.anomalies()
+        let anomalies: Vec<Anomaly> = self
+            .anomaly_detector
+            .anomalies()
             .into_iter()
             .cloned()
             .collect();
@@ -300,12 +352,8 @@ impl RootCauseAnalyzer {
         let health_score = self.calculate_health_score(delay_attr, bottleneck, anomalies);
 
         // Generate key finding
-        let key_finding = self.generate_key_finding(
-            delay_attr,
-            bottleneck,
-            critical_paths,
-            anomalies,
-        );
+        let key_finding =
+            self.generate_key_finding(delay_attr, bottleneck, critical_paths, anomalies);
 
         RCASummary {
             orders_analyzed,
@@ -386,7 +434,9 @@ impl RootCauseAnalyzer {
         }
 
         if critical_paths.slow_order_count > 0 {
-            let slow_pct = (critical_paths.slow_order_count as f64 / critical_paths.order_count as f64) * 100.0;
+            let slow_pct = (critical_paths.slow_order_count as f64
+                / critical_paths.order_count as f64)
+                * 100.0;
             if slow_pct > 10.0 {
                 return format!(
                     "{:.0}% of orders are slow. Most common critical phase: {}",
@@ -423,12 +473,14 @@ impl RootCauseAnalyzer {
                 BottleneckType::OverloadedStation { .. } => {
                     ("Station Capacity", "Reduce queue wait times by 30-50%")
                 }
-                BottleneckType::UnderutilizedStation { .. } => {
-                    ("Resource Optimization", "Improve overall efficiency by 10-20%")
-                }
-                BottleneckType::ChargingContention { .. } => {
-                    ("Charging Infrastructure", "Reduce charging-related delays by 20-30%")
-                }
+                BottleneckType::UnderutilizedStation { .. } => (
+                    "Resource Optimization",
+                    "Improve overall efficiency by 10-20%",
+                ),
+                BottleneckType::ChargingContention { .. } => (
+                    "Charging Infrastructure",
+                    "Reduce charging-related delays by 20-30%",
+                ),
                 BottleneckType::UnderutilizedRobots { .. } => {
                     ("Fleet Optimization", "Reduce operating costs by 15-25%")
                 }
@@ -448,7 +500,9 @@ impl RootCauseAnalyzer {
 
         // Recommendation based on delay attribution
         if delay_attr.waste_ratio > 0.3 {
-            if let Some((cat, _, _)) = delay_attr.ranked_categories.iter()
+            if let Some((cat, _, _)) = delay_attr
+                .ranked_categories
+                .iter()
                 .find(|(cat, _, _)| cat.is_waste())
             {
                 let text = match cat {
@@ -461,7 +515,7 @@ impl RootCauseAnalyzer {
                     crate::attribution::DelayCategory::StationQueue => {
                         "Add parallel capacity at busy stations or improve load balancing"
                     }
-                    _ => "Review and optimize operational processes"
+                    _ => "Review and optimize operational processes",
                 };
 
                 recommendations.push(Recommendation {
@@ -476,7 +530,9 @@ impl RootCauseAnalyzer {
 
         // Recommendation based on critical path
         if critical_paths.slow_order_count > 0 {
-            let slow_pct = (critical_paths.slow_order_count as f64 / critical_paths.order_count.max(1) as f64) * 100.0;
+            let slow_pct = (critical_paths.slow_order_count as f64
+                / critical_paths.order_count.max(1) as f64)
+                * 100.0;
             if slow_pct > 5.0 {
                 recommendations.push(Recommendation {
                     priority,
@@ -503,8 +559,8 @@ impl Default for RootCauseAnalyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use waremax_core::{SimTime, TaskId, OrderId};
     use crate::attribution::DelayCategory;
+    use waremax_core::{OrderId, SimTime, TaskId};
 
     fn create_test_attribution(order_id: u32, times: (f64, f64, f64, f64)) -> TaskAttribution {
         let (assignment, travel, queue, service) = times;
@@ -585,18 +641,16 @@ mod tests {
 
         // Create scenario with clear bottleneck
         let input = AnalyzerInput {
-            attributions: vec![
-                create_test_attribution(1, (5.0, 10.0, 15.0, 8.0)),
-            ],
-            station_data: vec![
-                (StationId(1), "S1".to_string(), 0.95, 5.0, 10),
-            ],
+            attributions: vec![create_test_attribution(1, (5.0, 10.0, 15.0, 8.0))],
+            station_data: vec![(StationId(1), "S1".to_string(), 0.95, 5.0, 10)],
             ..Default::default()
         };
 
         let report = analyzer.analyze(&input);
 
         // Should have at least one recommendation due to overloaded station
-        assert!(!report.recommendations.is_empty() || report.bottleneck_analysis.bottlenecks.is_empty());
+        assert!(
+            !report.recommendations.is_empty() || report.bottleneck_analysis.bottlenecks.is_empty()
+        );
     }
 }

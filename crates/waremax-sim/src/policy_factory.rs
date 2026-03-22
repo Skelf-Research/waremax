@@ -1,16 +1,13 @@
 //! Policy factory - creates policy instances from configuration
 
+use crate::world::PolicySet;
 use waremax_config::{PolicyConfig, TrafficConfig};
 use waremax_policies::{
-    TaskAllocationPolicy, StationAssignmentPolicy, BatchingPolicy, PriorityPolicy,
-    TrafficPolicy,
-    NearestRobotPolicy, RoundRobinPolicy, LeastBusyPolicy,
-    LeastQueuePolicy, NearestStationPolicy,
-    NoBatchingPolicy, ZoneBatchingPolicy,
-    StrictPriorityPolicy, FifoPolicy, DueTimePolicy,
-    WaitAtNodePolicy, RerouteOnWaitPolicy, AdaptiveTrafficPolicy,
+    AdaptiveTrafficPolicy, BatchingPolicy, DueTimePolicy, FifoPolicy, LeastBusyPolicy,
+    LeastQueuePolicy, NearestRobotPolicy, NearestStationPolicy, NoBatchingPolicy, PriorityPolicy,
+    RerouteOnWaitPolicy, RoundRobinPolicy, StationAssignmentPolicy, StrictPriorityPolicy,
+    TaskAllocationPolicy, TrafficPolicy, WaitAtNodePolicy, ZoneBatchingPolicy,
 };
-use crate::world::PolicySet;
 
 /// Create a PolicySet from scenario configuration
 pub fn create_policies(config: &PolicyConfig) -> PolicySet {
@@ -24,7 +21,10 @@ pub fn create_policies(config: &PolicyConfig) -> PolicySet {
 }
 
 /// Create a PolicySet with traffic config (v1)
-pub fn create_policies_with_traffic(config: &PolicyConfig, traffic_config: &TrafficConfig) -> PolicySet {
+pub fn create_policies_with_traffic(
+    config: &PolicyConfig,
+    traffic_config: &TrafficConfig,
+) -> PolicySet {
     PolicySet {
         task_allocation: create_task_allocation(config),
         station_assignment: create_station_assignment(config),
@@ -46,7 +46,10 @@ fn create_traffic_policy(config: &TrafficConfig) -> Box<dyn TrafficPolicy> {
             config.node_capacity_default as usize,
         )),
         unknown => {
-            eprintln!("Warning: Unknown traffic policy '{}', using wait_at_node", unknown);
+            eprintln!(
+                "Warning: Unknown traffic policy '{}', using wait_at_node",
+                unknown
+            );
             Box::new(WaitAtNodePolicy::new())
         }
     }
@@ -58,7 +61,10 @@ fn create_task_allocation(config: &PolicyConfig) -> Box<dyn TaskAllocationPolicy
         "round_robin" => Box::new(RoundRobinPolicy::new()),
         "least_busy" => Box::new(LeastBusyPolicy::new()),
         unknown => {
-            eprintln!("Warning: Unknown task allocation policy '{}', using nearest_robot", unknown);
+            eprintln!(
+                "Warning: Unknown task allocation policy '{}', using nearest_robot",
+                unknown
+            );
             Box::new(NearestRobotPolicy::new())
         }
     }
@@ -69,7 +75,10 @@ fn create_station_assignment(config: &PolicyConfig) -> Box<dyn StationAssignment
         "least_queue" => Box::new(LeastQueuePolicy::default()),
         "nearest_station" => Box::new(NearestStationPolicy::default()),
         unknown => {
-            eprintln!("Warning: Unknown station assignment policy '{}', using least_queue", unknown);
+            eprintln!(
+                "Warning: Unknown station assignment policy '{}', using least_queue",
+                unknown
+            );
             Box::new(LeastQueuePolicy::default())
         }
     }
@@ -95,7 +104,10 @@ fn create_priority(config: &PolicyConfig) -> Box<dyn PriorityPolicy> {
         "fifo" => Box::new(FifoPolicy::new()),
         "due_time" => Box::new(DueTimePolicy::new()),
         unknown => {
-            eprintln!("Warning: Unknown priority policy '{}', using strict_priority", unknown);
+            eprintln!(
+                "Warning: Unknown priority policy '{}', using strict_priority",
+                unknown
+            );
             Box::new(StrictPriorityPolicy::new())
         }
     }

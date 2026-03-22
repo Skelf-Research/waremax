@@ -2,12 +2,14 @@
 
 use rkyv::{Archive, Deserialize, Serialize};
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
-use waremax_core::{StationId, NodeId, RobotId, SimTime};
-use waremax_core::SimRng;
 use std::collections::VecDeque;
+use waremax_core::SimRng;
+use waremax_core::{NodeId, RobotId, SimTime, StationId};
 
 /// Type of station
-#[derive(Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq)]
+#[derive(
+    Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq,
+)]
 pub enum StationType {
     Pick,
     Drop,
@@ -25,10 +27,7 @@ impl Default for StationType {
 #[derive(Clone, Debug)]
 pub enum ServiceTimeModel {
     /// Constant service time: base + per_item * count
-    Constant {
-        base_s: f64,
-        per_item_s: f64,
-    },
+    Constant { base_s: f64, per_item_s: f64 },
     /// Lognormal distribution for service time
     Lognormal {
         base_mean: f64,
@@ -37,9 +36,7 @@ pub enum ServiceTimeModel {
         per_item_stddev: f64,
     },
     /// Exponential distribution (memoryless)
-    Exponential {
-        mean_s: f64,
-    },
+    Exponential { mean_s: f64 },
     /// Uniform distribution between min and max
     Uniform {
         min_s: f64,
@@ -55,7 +52,12 @@ impl ServiceTimeModel {
     }
 
     /// Create a lognormal service time model
-    pub fn lognormal(base_mean: f64, base_stddev: f64, per_item_mean: f64, per_item_stddev: f64) -> Self {
+    pub fn lognormal(
+        base_mean: f64,
+        base_stddev: f64,
+        per_item_mean: f64,
+        per_item_stddev: f64,
+    ) -> Self {
         Self::Lognormal {
             base_mean,
             base_stddev,
@@ -71,21 +73,31 @@ impl ServiceTimeModel {
 
     /// Create a uniform service time model
     pub fn uniform(min_s: f64, max_s: f64, per_item_s: f64) -> Self {
-        Self::Uniform { min_s, max_s, per_item_s }
+        Self::Uniform {
+            min_s,
+            max_s,
+            per_item_s,
+        }
     }
 
     /// Calculate service time (deterministic, for constant model or when no RNG available)
     pub fn calculate(&self, item_count: u32) -> SimTime {
         let seconds = match self {
-            Self::Constant { base_s, per_item_s } => {
-                base_s + per_item_s * item_count as f64
-            }
-            Self::Lognormal { base_mean, per_item_mean, .. } => {
+            Self::Constant { base_s, per_item_s } => base_s + per_item_s * item_count as f64,
+            Self::Lognormal {
+                base_mean,
+                per_item_mean,
+                ..
+            } => {
                 // Use means as fallback for deterministic calculation
                 base_mean + per_item_mean * item_count as f64
             }
             Self::Exponential { mean_s } => *mean_s,
-            Self::Uniform { min_s, max_s, per_item_s } => {
+            Self::Uniform {
+                min_s,
+                max_s,
+                per_item_s,
+            } => {
                 // Use midpoint as fallback
                 (min_s + max_s) / 2.0 + per_item_s * item_count as f64
             }
@@ -96,18 +108,23 @@ impl ServiceTimeModel {
     /// Sample service time with randomness
     pub fn sample(&self, rng: &mut SimRng, item_count: u32) -> SimTime {
         let seconds = match self {
-            Self::Constant { base_s, per_item_s } => {
-                base_s + per_item_s * item_count as f64
-            }
-            Self::Lognormal { base_mean, base_stddev, per_item_mean, per_item_stddev } => {
+            Self::Constant { base_s, per_item_s } => base_s + per_item_s * item_count as f64,
+            Self::Lognormal {
+                base_mean,
+                base_stddev,
+                per_item_mean,
+                per_item_stddev,
+            } => {
                 let base = rng.lognormal(*base_mean, *base_stddev);
                 let per_item = rng.lognormal(*per_item_mean, *per_item_stddev);
                 (base + per_item * item_count as f64).max(0.1)
             }
-            Self::Exponential { mean_s } => {
-                rng.exponential(1.0 / mean_s).max(0.1)
-            }
-            Self::Uniform { min_s, max_s, per_item_s } => {
+            Self::Exponential { mean_s } => rng.exponential(1.0 / mean_s).max(0.1),
+            Self::Uniform {
+                min_s,
+                max_s,
+                per_item_s,
+            } => {
                 let base = rng.uniform(*min_s, *max_s);
                 (base + per_item_s * item_count as f64).max(0.1)
             }

@@ -3,9 +3,9 @@
 //! Provides AggregatedStats for summarizing multiple runs and
 //! ScenarioComparator for comparing different configurations.
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use statrs::statistics::{Data, Distribution, OrderStatistics, Min, Max};
+use statrs::statistics::{Data, Distribution, Max, Min, OrderStatistics};
+use std::collections::HashMap;
 
 use crate::runner::RunResult;
 
@@ -165,8 +165,18 @@ impl MetricComparison {
     /// Format the comparison as a human-readable string
     pub fn summary(&self) -> String {
         let direction = if self.absolute_diff > 0.0 { "+" } else { "" };
-        let sig_marker = if self.statistically_significant { "*" } else { "" };
-        let improvement_marker = if self.is_improvement { " (better)" } else if self.statistically_significant && !self.is_improvement { " (worse)" } else { "" };
+        let sig_marker = if self.statistically_significant {
+            "*"
+        } else {
+            ""
+        };
+        let improvement_marker = if self.is_improvement {
+            " (better)"
+        } else if self.statistically_significant && !self.is_improvement {
+            " (worse)"
+        } else {
+            ""
+        };
 
         format!(
             "{}: {:.2} → {:.2} ({}{:.2}, {}{:.1}%){}{} [p={:.3}]",
@@ -226,7 +236,8 @@ impl ComparisonReport {
 
     /// Get metrics that show degradation
     pub fn degradations(&self) -> Vec<&MetricComparison> {
-        self.metrics.iter()
+        self.metrics
+            .iter()
             .filter(|m| m.statistically_significant && !m.is_improvement)
             .collect()
     }
@@ -256,31 +267,31 @@ impl ScenarioComparator {
         let variant_results = self.results.get(variant_label)?;
 
         // Extract metrics from results
-        let baseline_throughput: Vec<f64> = baseline_results.iter()
-            .map(|r| r.throughput())
-            .collect();
-        let variant_throughput: Vec<f64> = variant_results.iter()
-            .map(|r| r.throughput())
-            .collect();
+        let baseline_throughput: Vec<f64> =
+            baseline_results.iter().map(|r| r.throughput()).collect();
+        let variant_throughput: Vec<f64> = variant_results.iter().map(|r| r.throughput()).collect();
 
-        let baseline_p95: Vec<f64> = baseline_results.iter()
+        let baseline_p95: Vec<f64> = baseline_results
+            .iter()
             .map(|r| r.p95_cycle_time())
             .collect();
-        let variant_p95: Vec<f64> = variant_results.iter()
-            .map(|r| r.p95_cycle_time())
-            .collect();
+        let variant_p95: Vec<f64> = variant_results.iter().map(|r| r.p95_cycle_time()).collect();
 
-        let baseline_robot_util: Vec<f64> = baseline_results.iter()
+        let baseline_robot_util: Vec<f64> = baseline_results
+            .iter()
             .map(|r| r.robot_utilization())
             .collect();
-        let variant_robot_util: Vec<f64> = variant_results.iter()
+        let variant_robot_util: Vec<f64> = variant_results
+            .iter()
             .map(|r| r.robot_utilization())
             .collect();
 
-        let baseline_station_util: Vec<f64> = baseline_results.iter()
+        let baseline_station_util: Vec<f64> = baseline_results
+            .iter()
             .map(|r| r.station_utilization())
             .collect();
-        let variant_station_util: Vec<f64> = variant_results.iter()
+        let variant_station_util: Vec<f64> = variant_results
+            .iter()
             .map(|r| r.station_utilization())
             .collect();
 
@@ -316,13 +327,19 @@ impl ScenarioComparator {
         ));
 
         // Generate summary
-        let improvements: Vec<_> = metrics.iter()
+        let improvements: Vec<_> = metrics
+            .iter()
             .filter(|m| m.is_improvement)
             .map(|m| m.metric_name.clone())
             .collect();
 
-        let degradations: Vec<_> = metrics.iter()
-            .filter(|m| m.statistically_significant && !m.is_improvement && m.absolute_diff.abs() > f64::EPSILON)
+        let degradations: Vec<_> = metrics
+            .iter()
+            .filter(|m| {
+                m.statistically_significant
+                    && !m.is_improvement
+                    && m.absolute_diff.abs() > f64::EPSILON
+            })
             .map(|m| m.metric_name.clone())
             .collect();
 
@@ -350,15 +367,22 @@ impl ScenarioComparator {
 
     /// Compare all variants against a baseline
     pub fn compare_all_to_baseline(&self, baseline_label: &str) -> Vec<ComparisonReport> {
-        self.results.keys()
+        self.results
+            .keys()
             .filter(|k| *k != baseline_label)
             .filter_map(|variant_label| self.compare(baseline_label, variant_label))
             .collect()
     }
 
     /// Generate ranking table for a specific metric
-    pub fn rank_by_metric(&self, extractor: fn(&RunResult) -> f64, higher_is_better: bool) -> Vec<(String, AggregatedStats)> {
-        let mut rankings: Vec<(String, AggregatedStats)> = self.results.iter()
+    pub fn rank_by_metric(
+        &self,
+        extractor: fn(&RunResult) -> f64,
+        higher_is_better: bool,
+    ) -> Vec<(String, AggregatedStats)> {
+        let mut rankings: Vec<(String, AggregatedStats)> = self
+            .results
+            .iter()
             .map(|(label, results)| {
                 let samples: Vec<f64> = results.iter().map(|r| extractor(r)).collect();
                 (label.clone(), AggregatedStats::from_samples(&samples))
@@ -367,9 +391,13 @@ impl ScenarioComparator {
 
         rankings.sort_by(|a, b| {
             if higher_is_better {
-                b.1.mean.partial_cmp(&a.1.mean).unwrap_or(std::cmp::Ordering::Equal)
+                b.1.mean
+                    .partial_cmp(&a.1.mean)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             } else {
-                a.1.mean.partial_cmp(&b.1.mean).unwrap_or(std::cmp::Ordering::Equal)
+                a.1.mean
+                    .partial_cmp(&b.1.mean)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             }
         });
 
@@ -388,7 +416,9 @@ impl ScenarioComparator {
 
     /// Get the label of the best configuration by throughput
     pub fn best_by_throughput(&self) -> Option<String> {
-        self.rank_by_throughput().first().map(|(label, _)| label.clone())
+        self.rank_by_throughput()
+            .first()
+            .map(|(label, _)| label.clone())
     }
 
     /// Get all configuration labels

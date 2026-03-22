@@ -189,7 +189,12 @@ impl TimeSeriesCollector {
     }
 
     /// Record station utilization
-    pub fn record_station_utilization(&mut self, station_id: StationId, time: SimTime, utilization: f64) {
+    pub fn record_station_utilization(
+        &mut self,
+        station_id: StationId,
+        time: SimTime,
+        utilization: f64,
+    ) {
         self.station_series
             .entry(station_id)
             .or_default()
@@ -205,7 +210,12 @@ impl TimeSeriesCollector {
     }
 
     /// Record charging station queue length
-    pub fn record_charging_queue(&mut self, station_id: ChargingStationId, time: SimTime, length: usize) {
+    pub fn record_charging_queue(
+        &mut self,
+        station_id: ChargingStationId,
+        time: SimTime,
+        length: usize,
+    ) {
         self.charging_series
             .entry(station_id)
             .or_default()
@@ -213,7 +223,12 @@ impl TimeSeriesCollector {
     }
 
     /// Record charging station bays in use
-    pub fn record_charging_bays(&mut self, station_id: ChargingStationId, time: SimTime, count: usize) {
+    pub fn record_charging_bays(
+        &mut self,
+        station_id: ChargingStationId,
+        time: SimTime,
+        count: usize,
+    ) {
         self.charging_series
             .entry(station_id)
             .or_default()
@@ -221,7 +236,12 @@ impl TimeSeriesCollector {
     }
 
     /// Record charging station utilization
-    pub fn record_charging_utilization(&mut self, station_id: ChargingStationId, time: SimTime, utilization: f64) {
+    pub fn record_charging_utilization(
+        &mut self,
+        station_id: ChargingStationId,
+        time: SimTime,
+        utilization: f64,
+    ) {
         self.charging_series
             .entry(station_id)
             .or_default()
@@ -291,7 +311,11 @@ impl TimeSeriesCollector {
             })
             .collect();
 
-        rankings.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        rankings.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         rankings.truncate(n);
         rankings
     }
@@ -311,29 +335,45 @@ impl TimeSeriesCollector {
             })
             .collect();
 
-        rankings.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        rankings.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         rankings.truncate(n);
         rankings
     }
 
     /// Get total wait events across all nodes
     pub fn total_node_wait_events(&self) -> u32 {
-        self.node_congestion.values().map(|m| m.wait_event_count).sum()
+        self.node_congestion
+            .values()
+            .map(|m| m.wait_event_count)
+            .sum()
     }
 
     /// Get total wait events across all edges
     pub fn total_edge_wait_events(&self) -> u32 {
-        self.edge_congestion.values().map(|m| m.wait_event_count).sum()
+        self.edge_congestion
+            .values()
+            .map(|m| m.wait_event_count)
+            .sum()
     }
 
     /// Get total wait time across all nodes
     pub fn total_node_wait_time(&self) -> f64 {
-        self.node_congestion.values().map(|m| m.total_wait_time_s).sum()
+        self.node_congestion
+            .values()
+            .map(|m| m.total_wait_time_s)
+            .sum()
     }
 
     /// Get total wait time across all edges
     pub fn total_edge_wait_time(&self) -> f64 {
-        self.edge_congestion.values().map(|m| m.total_wait_time_s).sum()
+        self.edge_congestion
+            .values()
+            .map(|m| m.total_wait_time_s)
+            .sum()
     }
 
     /// Get all station time-series data (v3: for chart generation)

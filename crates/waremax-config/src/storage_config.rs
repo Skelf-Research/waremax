@@ -1,8 +1,8 @@
 //! Storage configuration parsing
 
+use super::scenario::ConfigError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use super::scenario::ConfigError;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct StorageConfig {

@@ -3,10 +3,10 @@
 //! Identifies the slowest phases in order processing and compares
 //! actual times against expected/baseline times.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use waremax_core::OrderId;
 use crate::attribution::{DelayCategory, TaskAttribution};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use waremax_core::OrderId;
 
 /// Phase in order processing for critical path analysis
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -203,22 +203,30 @@ impl CriticalPathSummary {
         output.push('\n');
 
         output.push_str(&format!("Orders Analyzed: {}\n", self.order_count));
-        output.push_str(&format!("Average Cycle Time: {:.1}s\n", self.avg_cycle_time_s));
+        output.push_str(&format!(
+            "Average Cycle Time: {:.1}s\n",
+            self.avg_cycle_time_s
+        ));
 
         if let Some(dev) = self.avg_deviation_s {
             output.push_str(&format!("Average Deviation: {:.1}s\n", dev));
         }
 
         output.push_str(&format!("Slow Orders: {}\n", self.slow_order_count));
-        output.push_str(&format!("\nMost Common Critical Phase: {}\n",
-            self.most_common_critical_phase.name()));
+        output.push_str(&format!(
+            "\nMost Common Critical Phase: {}\n",
+            self.most_common_critical_phase.name()
+        ));
 
         output.push_str("\nTime Breakdown by Phase:\n");
         for (phase, total_s, pct) in &self.phases_ranked {
             let avg = self.avg_phase_times.get(phase).unwrap_or(&0.0);
             output.push_str(&format!(
                 "  {}: {:.1}% ({:.1}s total, {:.1}s avg)\n",
-                phase.name(), pct, total_s, avg
+                phase.name(),
+                pct,
+                total_s,
+                avg
             ));
         }
 
@@ -229,7 +237,9 @@ impl CriticalPathSummary {
             let pct = (*count as f64 / self.order_count as f64) * 100.0;
             output.push_str(&format!(
                 "  {}: {} orders ({:.1}%)\n",
-                phase.name(), count, pct
+                phase.name(),
+                count,
+                pct
             ));
         }
 
@@ -332,7 +342,9 @@ impl CriticalPathAnalysis {
                 *total_phase_times.entry(phase.clone()).or_insert(0.0) += time;
             }
 
-            *critical_phase_frequency.entry(path.critical_phase.clone()).or_insert(0) += 1;
+            *critical_phase_frequency
+                .entry(path.critical_phase.clone())
+                .or_insert(0) += 1;
 
             if let Some(dev) = path.deviation_s() {
                 total_deviation += dev;
@@ -450,9 +462,9 @@ mod tests {
     #[test]
     fn test_critical_path_analysis() {
         let attributions = vec![
-            create_test_attribution(1, 100, 5.0, 15.0, 10.0, 8.0),  // 38s, travel critical
-            create_test_attribution(2, 101, 3.0, 10.0, 20.0, 8.0),  // 41s, queue critical
-            create_test_attribution(3, 102, 8.0, 12.0, 5.0, 10.0),  // 35s, travel critical
+            create_test_attribution(1, 100, 5.0, 15.0, 10.0, 8.0), // 38s, travel critical
+            create_test_attribution(2, 101, 3.0, 10.0, 20.0, 8.0), // 41s, queue critical
+            create_test_attribution(3, 102, 8.0, 12.0, 5.0, 10.0), // 35s, travel critical
         ];
 
         let analysis = CriticalPathAnalysis::from_attributions(&attributions);
@@ -461,19 +473,25 @@ mod tests {
         assert_eq!(summary.order_count, 3);
         // Either TravelToPickup or QueueWait should be most common
         // In this case, travel is critical for 2 orders
-        assert!(summary.critical_phase_frequency.get(&OrderPhase::TravelToPickup).unwrap_or(&0) >= &1);
+        assert!(
+            summary
+                .critical_phase_frequency
+                .get(&OrderPhase::TravelToPickup)
+                .unwrap_or(&0)
+                >= &1
+        );
     }
 
     #[test]
     fn test_slow_order_detection() {
         let attributions = vec![
-            create_test_attribution(1, 100, 5.0, 10.0, 5.0, 8.0),   // 28s - baseline
-            create_test_attribution(2, 101, 5.0, 10.0, 5.0, 8.0),   // 28s
+            create_test_attribution(1, 100, 5.0, 10.0, 5.0, 8.0), // 28s - baseline
+            create_test_attribution(2, 101, 5.0, 10.0, 5.0, 8.0), // 28s
             create_test_attribution(3, 102, 10.0, 30.0, 20.0, 15.0), // 75s - slow
         ];
 
-        let analysis = CriticalPathAnalysis::from_attributions(&attributions)
-            .with_slow_threshold(50.0);
+        let analysis =
+            CriticalPathAnalysis::from_attributions(&attributions).with_slow_threshold(50.0);
 
         // Median is 28s, so 75s is >50% above baseline
         let slow = analysis.slow_orders();

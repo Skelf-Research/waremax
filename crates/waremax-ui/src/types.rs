@@ -180,10 +180,7 @@ pub enum WebSocketMessage {
     /// Connection established
     Connected { session_id: String },
     /// Simulation tick update
-    Tick {
-        time_s: f64,
-        events_processed: u64,
-    },
+    Tick { time_s: f64, events_processed: u64 },
     /// Robot position changed
     RobotMoved {
         robot_id: u32,
@@ -205,21 +202,13 @@ pub enum WebSocketMessage {
         on_time: bool,
     },
     /// Metrics update
-    MetricsUpdate {
-        metrics: MetricsSnapshot,
-    },
+    MetricsUpdate { metrics: MetricsSnapshot },
     /// Full state sync
-    StateSync {
-        state: SimulationState,
-    },
+    StateSync { state: SimulationState },
     /// Simulation finished
-    Finished {
-        final_metrics: MetricsSnapshot,
-    },
+    Finished { final_metrics: MetricsSnapshot },
     /// Error occurred
-    Error {
-        message: String,
-    },
+    Error { message: String },
 }
 
 /// Error response

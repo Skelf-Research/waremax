@@ -223,11 +223,11 @@ pub fn write_trace_csv(path: &Path, entries: &[TraceEntry]) -> io::Result<()> {
                 robot_id,
                 station_id,
                 soc,
-            } => format!(
-                "robot={} station={} soc={:.2}",
-                robot_id, station_id, soc
-            ),
-            TraceDetails::ChargingEnd { robot_id, energy_wh } => {
+            } => format!("robot={} station={} soc={:.2}", robot_id, station_id, soc),
+            TraceDetails::ChargingEnd {
+                robot_id,
+                energy_wh,
+            } => {
                 format!("robot={} energy={:.2}Wh", robot_id, energy_wh)
             }
             TraceDetails::Generic { message } => message.clone(),

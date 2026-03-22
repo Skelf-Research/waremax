@@ -1,7 +1,7 @@
 //! Traffic management policies for handling congestion
 
-use waremax_core::{RobotId, NodeId, EdgeId, SimTime};
-use waremax_map::{WarehouseMap, TrafficManager};
+use waremax_core::{EdgeId, NodeId, RobotId, SimTime};
+use waremax_map::{TrafficManager, WarehouseMap};
 
 /// Context for traffic policy decisions
 pub struct TrafficPolicyContext<'a> {
@@ -134,7 +134,9 @@ impl TrafficPolicy for AdaptiveTrafficPolicy {
         let node_congestion = ctx.traffic.get_node_occupancy(ctx.current_node);
 
         // If congestion is high, reroute sooner
-        if edge_congestion >= self.congestion_threshold || node_congestion >= self.congestion_threshold {
+        if edge_congestion >= self.congestion_threshold
+            || node_congestion >= self.congestion_threshold
+        {
             if ctx.wait_duration.as_seconds() >= self.base_wait_s * 0.5 {
                 return TrafficAction::Reroute;
             }

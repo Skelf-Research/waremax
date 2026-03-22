@@ -37,7 +37,10 @@ pub struct ZoneBatchingPolicy {
 
 impl ZoneBatchingPolicy {
     pub fn new(max_items: u32, zone_radius: f64) -> Self {
-        Self { max_items, zone_radius }
+        Self {
+            max_items,
+            zone_radius,
+        }
     }
 
     /// Default zone batching: max 5 items, 10m radius
@@ -105,7 +108,10 @@ pub struct StationBatchPolicy {
 
 impl StationBatchPolicy {
     pub fn new(max_items: u32, max_weight_kg: Option<f64>) -> Self {
-        Self { max_items, max_weight_kg }
+        Self {
+            max_items,
+            max_weight_kg,
+        }
     }
 
     pub fn items_only(max_items: u32) -> Self {
@@ -147,7 +153,9 @@ impl BatchingPolicy for StationBatchPolicy {
                 let at_item_limit = current_batch.len() >= self.max_items as usize;
                 let at_weight_limit = if let Some(max_weight) = self.max_weight_kg {
                     // Estimate task weight from quantity (assume 1kg per item as default)
-                    let task_weight = ctx.tasks.get(&task_id)
+                    let task_weight = ctx
+                        .tasks
+                        .get(&task_id)
                         .map(|t| t.quantity as f64)
                         .unwrap_or(1.0);
                     current_weight + task_weight > max_weight
@@ -189,11 +197,11 @@ impl BatchingPolicy for StationBatchPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use waremax_core::{NodeId, OrderId, RobotId, StationId, SimTime};
-    use waremax_entities::{Robot, Task, BinLocation, Station, Order};
-    use waremax_map::{WarehouseMap, Node, NodeType};
-    use waremax_storage::BinAddress;
     use std::collections::HashMap;
+    use waremax_core::{NodeId, OrderId, RobotId, SimTime, StationId};
+    use waremax_entities::{BinLocation, Order, Robot, Station, Task};
+    use waremax_map::{Node, NodeType, WarehouseMap};
+    use waremax_storage::BinAddress;
 
     fn test_context<'a>(
         map: &'a WarehouseMap,
@@ -227,11 +235,41 @@ mod tests {
     fn make_map_with_nodes() -> WarehouseMap {
         let mut map = WarehouseMap::new();
         // Create nodes at specific positions for zone testing
-        map.add_node(Node::new(NodeId(0), "N0".to_string(), 0.0, 0.0, NodeType::Rack));
-        map.add_node(Node::new(NodeId(1), "N1".to_string(), 5.0, 0.0, NodeType::Rack)); // 5m from 0
-        map.add_node(Node::new(NodeId(2), "N2".to_string(), 8.0, 0.0, NodeType::Rack)); // 8m from 0
-        map.add_node(Node::new(NodeId(3), "N3".to_string(), 50.0, 0.0, NodeType::Rack)); // 50m from 0 (far)
-        map.add_node(Node::new(NodeId(4), "N4".to_string(), 52.0, 0.0, NodeType::Rack)); // 52m from 0 (far, close to 3)
+        map.add_node(Node::new(
+            NodeId(0),
+            "N0".to_string(),
+            0.0,
+            0.0,
+            NodeType::Rack,
+        ));
+        map.add_node(Node::new(
+            NodeId(1),
+            "N1".to_string(),
+            5.0,
+            0.0,
+            NodeType::Rack,
+        )); // 5m from 0
+        map.add_node(Node::new(
+            NodeId(2),
+            "N2".to_string(),
+            8.0,
+            0.0,
+            NodeType::Rack,
+        )); // 8m from 0
+        map.add_node(Node::new(
+            NodeId(3),
+            "N3".to_string(),
+            50.0,
+            0.0,
+            NodeType::Rack,
+        )); // 50m from 0 (far)
+        map.add_node(Node::new(
+            NodeId(4),
+            "N4".to_string(),
+            52.0,
+            0.0,
+            NodeType::Rack,
+        )); // 52m from 0 (far, close to 3)
         map
     }
 

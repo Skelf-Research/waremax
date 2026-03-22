@@ -2,7 +2,7 @@
 
 use rkyv::{Archive, Deserialize, Serialize};
 use std::fmt;
-use std::ops::{Add, Sub, AddAssign, SubAssign};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// Simulation time in seconds (f64 for sub-second precision)
 #[derive(Archive, Deserialize, Serialize, Clone, Copy, PartialEq, Default)]

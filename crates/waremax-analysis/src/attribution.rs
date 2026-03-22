@@ -2,9 +2,9 @@
 //!
 //! Tracks time breakdown per task by category to understand where time is spent.
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use waremax_core::{SimTime, TaskId, OrderId, RobotId, StationId, NodeId, EdgeId};
+use std::collections::HashMap;
+use waremax_core::{EdgeId, NodeId, OrderId, RobotId, SimTime, StationId, TaskId};
 
 /// Categories of delay/time spent during task execution
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -196,7 +196,8 @@ impl TaskAttribution {
         // Record assignment wait time
         let wait_time = at_time.as_seconds() - self.created_at_s;
         if wait_time > 0.0 {
-            *self.time_breakdown
+            *self
+                .time_breakdown
                 .entry(DelayCategory::RobotAssignment)
                 .or_insert(0.0) += wait_time;
         }
@@ -335,7 +336,8 @@ impl DelayAttributionSummary {
                 (cat.clone(), *total, pct)
             })
             .collect();
-        ranked_categories.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        ranked_categories
+            .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         let avg_waste_time_s = total_waste / task_count as f64;
         let avg_cycle_time_s = if completed_count > 0 {
@@ -364,7 +366,10 @@ impl DelayAttributionSummary {
     /// Format the summary as a human-readable string
     pub fn to_string(&self) -> String {
         let mut output = String::new();
-        output.push_str(&format!("Delay Attribution Summary ({} tasks)\n", self.task_count));
+        output.push_str(&format!(
+            "Delay Attribution Summary ({} tasks)\n",
+            self.task_count
+        ));
         output.push_str(&"=".repeat(50));
         output.push('\n');
 
@@ -382,8 +387,12 @@ impl DelayAttributionSummary {
 
         output.push_str(&"-".repeat(50));
         output.push('\n');
-        output.push_str(&format!("Average Cycle Time: {:.1}s\n", self.avg_cycle_time_s));
-        output.push_str(&format!("Average Waste Time: {:.1}s ({:.1}%)\n",
+        output.push_str(&format!(
+            "Average Cycle Time: {:.1}s\n",
+            self.avg_cycle_time_s
+        ));
+        output.push_str(&format!(
+            "Average Waste Time: {:.1}s ({:.1}%)\n",
             self.avg_waste_time_s,
             self.waste_ratio * 100.0
         ));
@@ -460,7 +469,12 @@ impl AttributionCollector {
     }
 
     /// Record robot assignment for a task
-    pub fn record_robot_assignment(&mut self, task_id: TaskId, robot_id: RobotId, at_time: SimTime) {
+    pub fn record_robot_assignment(
+        &mut self,
+        task_id: TaskId,
+        robot_id: RobotId,
+        at_time: SimTime,
+    ) {
         if let Some(attr) = self.active.get_mut(&task_id) {
             attr.assign_robot(robot_id, at_time);
         }
@@ -545,11 +559,8 @@ mod tests {
 
     #[test]
     fn test_task_attribution_time_tracking() {
-        let mut attr = TaskAttribution::new(
-            TaskId(1),
-            Some(OrderId(100)),
-            SimTime::from_seconds(0.0),
-        );
+        let mut attr =
+            TaskAttribution::new(TaskId(1), Some(OrderId(100)), SimTime::from_seconds(0.0));
 
         // Simulate assignment after 5 seconds
         attr.assign_robot(RobotId(1), SimTime::from_seconds(5.0));
@@ -593,11 +604,7 @@ mod tests {
 
     #[test]
     fn test_phase_tracking() {
-        let mut attr = TaskAttribution::new(
-            TaskId(1),
-            None,
-            SimTime::from_seconds(0.0),
-        );
+        let mut attr = TaskAttribution::new(TaskId(1), None, SimTime::from_seconds(0.0));
 
         // Start travel phase at t=5
         attr.start_phase(DelayCategory::TravelToPickup, SimTime::from_seconds(5.0));

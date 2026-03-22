@@ -135,7 +135,9 @@ pub struct ConstantLines {
 
 impl ConstantLines {
     pub fn new(count: u32) -> Self {
-        Self { count: count.max(1) }
+        Self {
+            count: count.max(1),
+        }
     }
 }
 
@@ -273,7 +275,10 @@ mod tests {
         let mut rng = test_rng();
         for _ in 0..10 {
             let val = dist.next_interarrival(&mut rng);
-            assert!((val - 5.0).abs() < f64::EPSILON, "Constant should return exact value");
+            assert!(
+                (val - 5.0).abs() < f64::EPSILON,
+                "Constant should return exact value"
+            );
         }
     }
 
@@ -314,7 +319,11 @@ mod tests {
         let num_skus = 20;
         for _ in 0..100 {
             let val = dist.next_sku(&mut rng, num_skus);
-            assert!(val < num_skus, "SKU index should be in range 0..{}", num_skus);
+            assert!(
+                val < num_skus,
+                "SKU index should be in range 0..{}",
+                num_skus
+            );
         }
     }
 
@@ -325,7 +334,11 @@ mod tests {
         let num_skus = 20;
         for _ in 0..100 {
             let val = dist.next_sku(&mut rng, num_skus);
-            assert!(val < num_skus, "SKU index should be in range 0..{}", num_skus);
+            assert!(
+                val < num_skus,
+                "SKU index should be in range 0..{}",
+                num_skus
+            );
         }
     }
 

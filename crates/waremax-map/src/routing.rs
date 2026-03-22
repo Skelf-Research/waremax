@@ -1,10 +1,10 @@
 //! Routing algorithms for finding paths in the warehouse map
 
-use waremax_core::{NodeId, EdgeId};
 use crate::graph::WarehouseMap;
 use crate::traffic::TrafficManager;
-use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, HashSet};
+use waremax_core::{EdgeId, NodeId};
 
 /// v1: Routing algorithm selection
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -171,9 +171,16 @@ impl Router {
     }
 
     /// Calculate edge cost with optional congestion penalty and speed multiplier
-    fn edge_cost(&self, map: &WarehouseMap, length: f64, edge_id: EdgeId, traffic: Option<&TrafficManager>) -> f64 {
+    fn edge_cost(
+        &self,
+        map: &WarehouseMap,
+        length: f64,
+        edge_id: EdgeId,
+        traffic: Option<&TrafficManager>,
+    ) -> f64 {
         // Apply speed multiplier (v2: fast lanes/express paths)
-        let speed_multiplier = map.get_edge(edge_id)
+        let speed_multiplier = map
+            .get_edge(edge_id)
             .map(|e| e.speed_multiplier)
             .unwrap_or(1.0);
         let base_cost = length * speed_multiplier;
@@ -220,7 +227,10 @@ impl Router {
         let mut heap = BinaryHeap::new();
 
         dist.insert(from, 0.0);
-        heap.push(State { cost: 0.0, node: from });
+        heap.push(State {
+            cost: 0.0,
+            node: from,
+        });
 
         while let Some(State { cost, node }) = heap.pop() {
             if node == to {
@@ -297,7 +307,10 @@ impl Router {
         let mut heap = BinaryHeap::new();
 
         dist.insert(from, 0.0);
-        heap.push(State { cost: 0.0, node: from });
+        heap.push(State {
+            cost: 0.0,
+            node: from,
+        });
 
         while let Some(State { cost, node }) = heap.pop() {
             if node == to {
@@ -355,8 +368,8 @@ impl Router {
     ) -> Option<Route> {
         #[derive(Clone, PartialEq)]
         struct State {
-            f_cost: f64,  // f = g + h
-            g_cost: f64,  // actual cost from start
+            f_cost: f64, // f = g + h
+            g_cost: f64, // actual cost from start
             node: NodeId,
         }
 

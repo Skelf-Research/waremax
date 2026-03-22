@@ -1,12 +1,12 @@
 //! Waremax Map - Graph-based map, routing, and traffic management
 
+pub mod deadlock;
 pub mod graph;
+pub mod reservation;
 pub mod routing;
 pub mod traffic;
-pub mod deadlock;
-pub mod reservation;
 
-pub use graph::{Node, Edge, NodeType, EdgeDirection, WarehouseMap};
+pub use graph::{Edge, EdgeDirection, Node, NodeType, WarehouseMap};
 pub use routing::{Route, RouteCache, Router};
 pub use traffic::TrafficManager;
 

@@ -11,19 +11,21 @@
 //! - **Anomaly Detection**: Flag unusual patterns using statistical methods
 //! - **Recommendations**: Generate actionable suggestions based on detected issues
 
+pub mod analyzer;
+pub mod anomaly;
 pub mod attribution;
 pub mod bottleneck;
 pub mod critical_path;
-pub mod anomaly;
-pub mod analyzer;
 pub mod reporter;
 
-pub use attribution::{
-    DelayCategory, TaskAttribution, AttributionCollector,
-    CongestionEvent, QueueWaitEvent, DelayAttributionSummary,
+pub use analyzer::{
+    AnalyzerInput, RCASummary, Recommendation, RootCauseAnalysisReport, RootCauseAnalyzer,
 };
-pub use bottleneck::{BottleneckType, BottleneckAnalysis, BottleneckDetector};
+pub use anomaly::{Anomaly, AnomalyDetector, AnomalyType};
+pub use attribution::{
+    AttributionCollector, CongestionEvent, DelayAttributionSummary, DelayCategory, QueueWaitEvent,
+    TaskAttribution,
+};
+pub use bottleneck::{BottleneckAnalysis, BottleneckDetector, BottleneckType};
 pub use critical_path::{CriticalPathAnalysis, CriticalPathSummary, OrderCriticalPath};
-pub use anomaly::{Anomaly, AnomalyType, AnomalyDetector};
-pub use analyzer::{RootCauseAnalyzer, RootCauseAnalysisReport, RCASummary, Recommendation, AnalyzerInput};
 pub use reporter::{RCAReporter, ReportFormat};

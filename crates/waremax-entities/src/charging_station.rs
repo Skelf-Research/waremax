@@ -1,7 +1,7 @@
 //! Charging station entity for robot battery management
 
-use waremax_core::{ChargingStationId, NodeId, RobotId, SimTime};
 use std::collections::VecDeque;
+use waremax_core::{ChargingStationId, NodeId, RobotId, SimTime};
 
 /// A charging station in the warehouse
 #[derive(Clone, Debug)]
@@ -107,7 +107,12 @@ impl ChargingStation {
     }
 
     /// Calculate time to charge from current_soc to target_soc
-    pub fn charging_duration(&self, current_soc: f64, target_soc: f64, capacity_wh: f64) -> SimTime {
+    pub fn charging_duration(
+        &self,
+        current_soc: f64,
+        target_soc: f64,
+        capacity_wh: f64,
+    ) -> SimTime {
         let energy_needed_wh = (target_soc - current_soc) * capacity_wh;
         let hours = energy_needed_wh / self.charge_rate_w;
         SimTime::from_seconds(hours * 3600.0)

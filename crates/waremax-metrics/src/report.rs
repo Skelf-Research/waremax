@@ -1,7 +1,7 @@
 //! Simulation report generation
 
-use serde::{Deserialize, Serialize};
 use crate::timeseries::CongestionRanking;
+use serde::{Deserialize, Serialize};
 
 /// SLA section of the report
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -369,7 +369,10 @@ Reliability:
 
         // Add per-station summary if present (v3)
         if let Some(ref stations) = self.station_reports {
-            output.push_str(&format!("\nPer-Station Summary ({} stations):\n", stations.len()));
+            output.push_str(&format!(
+                "\nPer-Station Summary ({} stations):\n",
+                stations.len()
+            ));
             for station in stations.iter().take(5) {
                 output.push_str(&format!(
                     "  {} ({}): {} served, avg queue {:.1}, {:.1}% utilization\n",

@@ -3,17 +3,17 @@
 //! Provides BenchmarkSuite for running named benchmarks and
 //! BenchmarkHistory for tracking performance over time.
 
-use std::collections::HashMap;
-use std::io::{self, BufReader, BufWriter};
-use std::fs::File;
-use std::path::Path;
-use serde::{Deserialize, Serialize};
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{self, BufReader, BufWriter};
+use std::path::Path;
 
-use waremax_config::ScenarioConfig;
-use crate::runner::BatchRunner;
 use crate::comparison::AggregatedStats;
 use crate::presets::ScenarioPreset;
+use crate::runner::BatchRunner;
+use waremax_config::ScenarioConfig;
 
 /// A single benchmark definition
 #[derive(Clone)]
@@ -104,14 +104,15 @@ impl BenchmarkSuite {
         self.benchmarks.push(
             Benchmark::new(name, scenario)
                 .expect_throughput(expected_throughput)
-                .expect_latency_p95(expected_p95)
+                .expect_latency_p95(expected_p95),
         );
         self
     }
 
     /// Add a benchmark from a preset
     pub fn add_preset(mut self, preset: ScenarioPreset) -> Self {
-        self.benchmarks.push(Benchmark::new(preset.name(), preset.config()));
+        self.benchmarks
+            .push(Benchmark::new(preset.name(), preset.config()));
         self
     }
 
@@ -122,12 +123,11 @@ impl BenchmarkSuite {
 
         for benchmark in &self.benchmarks {
             // Generate seeds for replications
-            let seeds: Vec<u64> = (0..self.replications)
-                .map(|i| 42 + i as u64)
-                .collect();
+            let seeds: Vec<u64> = (0..self.replications).map(|i| 42 + i as u64).collect();
 
             // Create scenarios with different seeds
-            let scenarios: Vec<(String, ScenarioConfig)> = seeds.iter()
+            let scenarios: Vec<(String, ScenarioConfig)> = seeds
+                .iter()
                 .map(|&seed| {
                     let mut config = benchmark.scenario.clone();
                     config.seed = seed;
@@ -140,19 +140,15 @@ impl BenchmarkSuite {
             let run_results = runner.run();
 
             // Compute statistics
-            let throughput_samples: Vec<f64> = run_results.iter()
-                .map(|r| r.throughput())
-                .collect();
+            let throughput_samples: Vec<f64> = run_results.iter().map(|r| r.throughput()).collect();
             let throughput_stats = AggregatedStats::from_samples(&throughput_samples);
 
-            let latency_samples: Vec<f64> = run_results.iter()
-                .map(|r| r.p95_cycle_time())
-                .collect();
+            let latency_samples: Vec<f64> =
+                run_results.iter().map(|r| r.p95_cycle_time()).collect();
             let latency_stats = AggregatedStats::from_samples(&latency_samples);
 
-            let util_samples: Vec<f64> = run_results.iter()
-                .map(|r| r.robot_utilization())
-                .collect();
+            let util_samples: Vec<f64> =
+                run_results.iter().map(|r| r.robot_utilization()).collect();
             let util_stats = AggregatedStats::from_samples(&util_samples);
 
             // Check for regressions
@@ -237,12 +233,18 @@ impl BenchmarkResults {
 
     /// Get all passing benchmarks
     pub fn passed(&self) -> Vec<&BenchmarkResult> {
-        self.results.iter().filter(|r| r.passed_expectations).collect()
+        self.results
+            .iter()
+            .filter(|r| r.passed_expectations)
+            .collect()
     }
 
     /// Get all failing benchmarks
     pub fn failed(&self) -> Vec<&BenchmarkResult> {
-        self.results.iter().filter(|r| !r.passed_expectations).collect()
+        self.results
+            .iter()
+            .filter(|r| !r.passed_expectations)
+            .collect()
     }
 
     /// Format results as a human-readable string
@@ -253,11 +255,12 @@ impl BenchmarkResults {
         output.push('\n');
 
         for result in &self.results {
-            let status = if result.passed_expectations { "PASS" } else { "FAIL" };
-            output.push_str(&format!(
-                "[{}] {}\n",
-                status, result.name
-            ));
+            let status = if result.passed_expectations {
+                "PASS"
+            } else {
+                "FAIL"
+            };
+            output.push_str(&format!("[{}] {}\n", status, result.name));
             output.push_str(&format!(
                 "    Throughput: {:.1} ± {:.1} orders/hr\n",
                 result.throughput.mean, result.throughput.std_dev
@@ -268,7 +271,8 @@ impl BenchmarkResults {
             ));
             output.push_str(&format!(
                 "    Utilization: {:.1}% ± {:.1}%\n",
-                result.utilization.mean * 100.0, result.utilization.std_dev * 100.0
+                result.utilization.mean * 100.0,
+                result.utilization.std_dev * 100.0
             ));
         }
 
@@ -397,7 +401,11 @@ impl BenchmarkHistory {
     }
 
     /// Detect regressions by comparing latest results to historical baseline
-    pub fn detect_regressions(&self, latest: &BenchmarkResults, threshold_pct: f64) -> Vec<RegressionAlert> {
+    pub fn detect_regressions(
+        &self,
+        latest: &BenchmarkResults,
+        threshold_pct: f64,
+    ) -> Vec<RegressionAlert> {
         if self.entries.is_empty() {
             return Vec::new();
         }
@@ -411,10 +419,12 @@ impl BenchmarkHistory {
 
         for run in &baseline_runs {
             for result in &run.results {
-                baseline_throughput.entry(result.name.clone())
+                baseline_throughput
+                    .entry(result.name.clone())
                     .or_default()
                     .push(result.throughput.mean);
-                baseline_latency.entry(result.name.clone())
+                baseline_latency
+                    .entry(result.name.clone())
                     .or_default()
                     .push(result.latency_p95.mean);
             }
@@ -458,7 +468,8 @@ impl BenchmarkHistory {
 
     /// Get trend data for a specific benchmark and metric
     pub fn trend(&self, benchmark: &str, metric: &str) -> Vec<(String, f64)> {
-        self.entries.iter()
+        self.entries
+            .iter()
             .filter_map(|run| {
                 let result = run.results.iter().find(|r| r.name == benchmark)?;
                 let value = match metric {

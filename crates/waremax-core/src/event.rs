@@ -1,8 +1,8 @@
 //! Simulation events for the discrete-event simulation
 
 use crate::{
-    SimTime, EventId, RobotId, NodeId, EdgeId, StationId, TaskId, OrderId, SkuId, BinId,
-    ShipmentId, ChargingStationId, MaintenanceStationId,
+    BinId, ChargingStationId, EdgeId, EventId, MaintenanceStationId, NodeId, OrderId, RobotId,
+    ShipmentId, SimTime, SkuId, StationId, TaskId,
 };
 use rkyv::{Archive, Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -11,15 +11,10 @@ use std::cmp::Ordering;
 #[derive(Archive, Deserialize, Serialize, Clone, Debug)]
 pub enum SimEvent {
     /// New order arrives in the system
-    OrderArrival {
-        order_id: OrderId,
-    },
+    OrderArrival { order_id: OrderId },
 
     /// Task is assigned to a robot
-    TaskAssignment {
-        task_id: TaskId,
-        robot_id: RobotId,
-    },
+    TaskAssignment { task_id: TaskId, robot_id: RobotId },
 
     /// Robot departs from a node to traverse an edge
     RobotDepartNode {
@@ -66,10 +61,7 @@ pub enum SimEvent {
     },
 
     /// Robot wait ends, can attempt to proceed
-    RobotWaitEnd {
-        robot_id: RobotId,
-        at_node: NodeId,
-    },
+    RobotWaitEnd { robot_id: RobotId, at_node: NodeId },
 
     /// Robot pickup at bin location
     RobotPickup {
@@ -82,7 +74,6 @@ pub enum SimEvent {
     DispatchTasks,
 
     // === v1: Inbound/Outbound Flow Events ===
-
     /// Shipment arrives at inbound station
     InboundArrival {
         shipment_id: ShipmentId,
@@ -96,9 +87,7 @@ pub enum SimEvent {
     },
 
     /// Order is ready for outbound (all picks complete)
-    OutboundReady {
-        order_id: OrderId,
-    },
+    OutboundReady { order_id: OrderId },
 
     /// Shipment departs from outbound station
     ShipmentDeparture {
@@ -115,7 +104,6 @@ pub enum SimEvent {
     },
 
     // === v1: Battery & Charging Events ===
-
     /// Robot starts charging at a station
     RobotChargingStart {
         robot_id: RobotId,
@@ -130,18 +118,13 @@ pub enum SimEvent {
     },
 
     /// Robot battery drops below threshold
-    RobotLowBattery {
-        robot_id: RobotId,
-        soc: f64,
-    },
+    RobotLowBattery { robot_id: RobotId, soc: f64 },
 
     // === v1: Metrics Events ===
-
     /// Periodic metrics sampling tick
     MetricsSampleTick,
 
     // === v2: Traffic & Safety Events ===
-
     /// Deadlock detected between robots
     DeadlockDetected {
         /// Robot IDs involved in the deadlock cycle
@@ -157,7 +140,6 @@ pub enum SimEvent {
     },
 
     // === v3: Robot Failures & Maintenance Events ===
-
     /// Robot has failed and needs repair
     RobotFailure {
         robot_id: RobotId,
@@ -357,7 +339,9 @@ mod tests {
 
     #[test]
     fn test_event_type_name() {
-        let event = SimEvent::OrderArrival { order_id: OrderId(1) };
+        let event = SimEvent::OrderArrival {
+            order_id: OrderId(1),
+        };
         assert_eq!(event.event_type_name(), "order_arrival");
     }
 }

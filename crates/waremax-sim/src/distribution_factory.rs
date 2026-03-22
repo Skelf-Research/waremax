@@ -46,7 +46,9 @@ fn create_lines_distribution(config: &OrderConfig) -> Box<dyn LinesDistribution>
             config.lines_per_order.dispersion,
         )),
         "poisson" => Box::new(PoissonLines::new(config.lines_per_order.mean)),
-        "constant" => Box::new(ConstantLines::new(config.lines_per_order.mean.max(1.0) as u32)),
+        "constant" => Box::new(ConstantLines::new(
+            config.lines_per_order.mean.max(1.0) as u32
+        )),
         unknown => {
             eprintln!(
                 "Warning: Unknown lines distribution type '{}', using negbin",

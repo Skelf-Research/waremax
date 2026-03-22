@@ -2,10 +2,10 @@
 //!
 //! Detects unusual patterns using statistical methods like z-scores.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use waremax_core::{OrderId, RobotId, StationId, SimTime};
 use crate::attribution::TaskAttribution;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use waremax_core::{OrderId, RobotId, SimTime, StationId};
 
 /// Types of anomalies that can be detected
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -52,22 +52,30 @@ impl AnomalyType {
     /// Get a severity score (0-100)
     pub fn severity(&self) -> f64 {
         match self {
-            AnomalyType::SlowOrder { z_score, .. } => {
-                (z_score.abs() * 20.0).min(100.0)
-            }
-            AnomalyType::StationQueueSpike { queue_length, typical_queue, .. } => {
+            AnomalyType::SlowOrder { z_score, .. } => (z_score.abs() * 20.0).min(100.0),
+            AnomalyType::StationQueueSpike {
+                queue_length,
+                typical_queue,
+                ..
+            } => {
                 let ratio = *queue_length as f64 / typical_queue.max(1.0);
                 ((ratio - 1.0) * 30.0).min(100.0)
             }
-            AnomalyType::RobotAnomaly { metric_value, expected_value, .. } => {
+            AnomalyType::RobotAnomaly {
+                metric_value,
+                expected_value,
+                ..
+            } => {
                 let diff = (metric_value - expected_value).abs();
                 let ratio = diff / expected_value.abs().max(1.0);
                 (ratio * 50.0).min(100.0)
             }
-            AnomalyType::ThroughputDrop { drop_pct, .. } => {
-                drop_pct.abs().min(100.0)
-            }
-            AnomalyType::CongestionSpike { wait_time_s, typical_wait_s, .. } => {
+            AnomalyType::ThroughputDrop { drop_pct, .. } => drop_pct.abs().min(100.0),
+            AnomalyType::CongestionSpike {
+                wait_time_s,
+                typical_wait_s,
+                ..
+            } => {
                 let ratio = wait_time_s / typical_wait_s.max(0.1);
                 ((ratio - 1.0) * 25.0).min(100.0)
             }
@@ -88,28 +96,53 @@ impl AnomalyType {
     /// Get detailed description
     pub fn description(&self) -> String {
         match self {
-            AnomalyType::SlowOrder { order_id, cycle_time_s, expected_s, z_score } => {
+            AnomalyType::SlowOrder {
+                order_id,
+                cycle_time_s,
+                expected_s,
+                z_score,
+            } => {
                 format!(
                     "Order {} took {:.1}s (expected {:.1}s, z={:.2})",
                     order_id, cycle_time_s, expected_s, z_score
                 )
             }
-            AnomalyType::StationQueueSpike { station_name, queue_length, typical_queue, timestamp_s, .. } => {
+            AnomalyType::StationQueueSpike {
+                station_name,
+                queue_length,
+                typical_queue,
+                timestamp_s,
+                ..
+            } => {
                 format!(
                     "Station {} queue spiked to {} at t={:.0}s (typical: {:.1})",
                     station_name, queue_length, timestamp_s, typical_queue
                 )
             }
-            AnomalyType::RobotAnomaly { robot_id, anomaly_description, .. } => {
+            AnomalyType::RobotAnomaly {
+                robot_id,
+                anomaly_description,
+                ..
+            } => {
                 format!("Robot {}: {}", robot_id, anomaly_description)
             }
-            AnomalyType::ThroughputDrop { timestamp_s, actual_rate, expected_rate, drop_pct } => {
+            AnomalyType::ThroughputDrop {
+                timestamp_s,
+                actual_rate,
+                expected_rate,
+                drop_pct,
+            } => {
                 format!(
                     "Throughput dropped {:.1}% at t={:.0}s ({:.1} vs {:.1} orders/hr)",
                     drop_pct, timestamp_s, actual_rate, expected_rate
                 )
             }
-            AnomalyType::CongestionSpike { location_description, wait_time_s, typical_wait_s, timestamp_s } => {
+            AnomalyType::CongestionSpike {
+                location_description,
+                wait_time_s,
+                typical_wait_s,
+                timestamp_s,
+            } => {
                 format!(
                     "{} wait spiked to {:.1}s at t={:.0}s (typical: {:.1}s)",
                     location_description, wait_time_s, timestamp_s, typical_wait_s
@@ -169,7 +202,8 @@ impl StatUtils {
             return 0.0;
         }
         let mean = Self::mean(samples);
-        let variance = samples.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / (samples.len() - 1) as f64;
+        let variance =
+            samples.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / (samples.len() - 1) as f64;
         variance.sqrt()
     }
 
@@ -246,8 +280,8 @@ pub struct AnomalyConfig {
 impl Default for AnomalyConfig {
     fn default() -> Self {
         Self {
-            slow_order_z_threshold: 2.0,  // 2 standard deviations
-            queue_spike_multiplier: 3.0,   // 3x typical queue
+            slow_order_z_threshold: 2.0, // 2 standard deviations
+            queue_spike_multiplier: 3.0, // 3x typical queue
             throughput_drop_threshold_pct: 30.0,
             congestion_spike_multiplier: 3.0,
             min_samples: 10,
@@ -320,7 +354,7 @@ impl AnomalyDetector {
         &mut self,
         station_id: StationId,
         station_name: &str,
-        queue_samples: &[(f64, usize)],  // (timestamp_s, queue_length)
+        queue_samples: &[(f64, usize)], // (timestamp_s, queue_length)
     ) {
         if queue_samples.len() < self.config.min_samples {
             return;
@@ -349,14 +383,14 @@ impl AnomalyDetector {
     /// Detect throughput drops from time series data
     pub fn detect_throughput_drops(
         &mut self,
-        throughput_samples: &[(f64, f64)],  // (timestamp_s, orders_per_hour)
+        throughput_samples: &[(f64, f64)], // (timestamp_s, orders_per_hour)
     ) {
         if throughput_samples.len() < self.config.min_samples {
             return;
         }
 
         let rates: Vec<f64> = throughput_samples.iter().map(|(_, r)| *r).collect();
-        let baseline = StatUtils::percentile(&rates, 75.0);  // Use 75th percentile as baseline
+        let baseline = StatUtils::percentile(&rates, 75.0); // Use 75th percentile as baseline
 
         for (timestamp_s, rate) in throughput_samples {
             if baseline > 0.0 && *rate < baseline {
@@ -385,7 +419,9 @@ impl AnomalyDetector {
     pub fn anomalies(&self) -> Vec<&Anomaly> {
         let mut sorted: Vec<_> = self.anomalies.iter().collect();
         sorted.sort_by(|a, b| {
-            b.severity.partial_cmp(&a.severity).unwrap_or(std::cmp::Ordering::Equal)
+            b.severity
+                .partial_cmp(&a.severity)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
         sorted
     }
@@ -402,7 +438,9 @@ impl AnomalyDetector {
     pub fn count_by_type(&self) -> HashMap<String, usize> {
         let mut counts = HashMap::new();
         for anomaly in &self.anomalies {
-            *counts.entry(anomaly.anomaly_type.name().to_string()).or_insert(0) += 1;
+            *counts
+                .entry(anomaly.anomaly_type.name().to_string())
+                .or_insert(0) += 1;
         }
         counts
     }
@@ -424,7 +462,10 @@ impl AnomalyDetector {
         output.push_str(&"=".repeat(50));
         output.push('\n');
 
-        output.push_str(&format!("Total Anomalies Detected: {}\n", self.anomalies.len()));
+        output.push_str(&format!(
+            "Total Anomalies Detected: {}\n",
+            self.anomalies.len()
+        ));
 
         let counts = self.count_by_type();
         if !counts.is_empty() {
@@ -536,9 +577,7 @@ mod tests {
         let mut detector = AnomalyDetector::new();
 
         // Normal queue around 2
-        let mut samples: Vec<(f64, usize)> = (0..20)
-            .map(|i| (i as f64 * 60.0, 2))
-            .collect();
+        let mut samples: Vec<(f64, usize)> = (0..20).map(|i| (i as f64 * 60.0, 2)).collect();
         // Add spikes
         samples.push((1200.0, 10));
         samples.push((1260.0, 12));
@@ -549,7 +588,9 @@ mod tests {
         assert!(anomalies.len() >= 1);
 
         // Verify queue spike detected
-        assert!(anomalies.iter().any(|a| matches!(a.anomaly_type, AnomalyType::StationQueueSpike { .. })));
+        assert!(anomalies
+            .iter()
+            .any(|a| matches!(a.anomaly_type, AnomalyType::StationQueueSpike { .. })));
     }
 
     #[test]

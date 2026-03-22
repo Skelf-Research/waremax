@@ -172,7 +172,12 @@ impl ServiceTimeConfig {
     }
 
     /// Create a lognormal service time config
-    pub fn lognormal(base_mean: f64, base_stddev: f64, per_item_mean: f64, per_item_stddev: f64) -> Self {
+    pub fn lognormal(
+        base_mean: f64,
+        base_stddev: f64,
+        per_item_mean: f64,
+        per_item_stddev: f64,
+    ) -> Self {
         Self {
             distribution: "lognormal".to_string(),
             base: base_mean,

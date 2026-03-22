@@ -1,7 +1,7 @@
 //! Task entity
 
 use rkyv::{Archive, Deserialize, Serialize};
-use waremax_core::{TaskId, OrderId, SkuId, RobotId, StationId, NodeId, SimTime};
+use waremax_core::{NodeId, OrderId, RobotId, SimTime, SkuId, StationId, TaskId};
 use waremax_storage::rack::BinAddress;
 
 /// Type of task
@@ -27,7 +27,10 @@ pub struct BinLocation {
 
 impl BinLocation {
     pub fn new(bin_address: BinAddress, access_node: NodeId) -> Self {
-        Self { bin_address, access_node }
+        Self {
+            bin_address,
+            access_node,
+        }
     }
 }
 

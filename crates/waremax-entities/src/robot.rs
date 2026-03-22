@@ -1,8 +1,10 @@
 //! Robot entity and state machine
 
 use rkyv::{Archive, Deserialize, Serialize};
-use waremax_core::{RobotId, NodeId, EdgeId, StationId, TaskId, ChargingStationId, MaintenanceStationId, SimTime};
 use std::collections::VecDeque;
+use waremax_core::{
+    ChargingStationId, EdgeId, MaintenanceStationId, NodeId, RobotId, SimTime, StationId, TaskId,
+};
 
 /// Robot state in the simulation
 #[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq)]
@@ -24,9 +26,15 @@ pub enum RobotState {
     /// v3: Robot has failed and needs repair
     Failed,
     /// v3: Robot is moving to a maintenance station
-    SeekingMaintenance { destination: MaintenanceStationId, is_repair: bool },
+    SeekingMaintenance {
+        destination: MaintenanceStationId,
+        is_repair: bool,
+    },
     /// v3: Robot is being serviced at a maintenance station
-    InMaintenance { at_station: MaintenanceStationId, is_repair: bool },
+    InMaintenance {
+        at_station: MaintenanceStationId,
+        is_repair: bool,
+    },
 }
 
 /// v1: Battery state for a robot
@@ -395,9 +403,7 @@ impl Robot {
             RobotState::Idle => self.total_idle_time += duration,
             RobotState::Moving { .. }
             | RobotState::SeekingCharge { .. }
-            | RobotState::SeekingMaintenance { .. } => {
-                self.total_move_time += duration
-            }
+            | RobotState::SeekingMaintenance { .. } => self.total_move_time += duration,
             RobotState::Waiting { .. } => self.total_wait_time += duration,
             RobotState::Servicing { .. } | RobotState::PickingUp { .. } => {
                 self.total_service_time += duration
@@ -422,9 +428,8 @@ impl Robot {
     /// Calculate energy consumed for traveling a distance with current payload
     pub fn energy_for_distance(&self, distance_m: f64) -> f64 {
         let base = self.consumption_model.per_meter_wh * distance_m;
-        let payload = self.consumption_model.per_kg_per_meter_wh
-            * self.current_payload_kg
-            * distance_m;
+        let payload =
+            self.consumption_model.per_kg_per_meter_wh * self.current_payload_kg * distance_m;
         base + payload
     }
 
