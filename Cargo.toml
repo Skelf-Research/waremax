@@ -46,17 +46,17 @@ mimalloc = "0.1"
 clap = { version = "4.0", features = ["derive"] }
 
 # Internal crates
-waremax-core = { path = "crates/waremax-core" }
-waremax-map = { path = "crates/waremax-map" }
-waremax-storage = { path = "crates/waremax-storage" }
-waremax-entities = { path = "crates/waremax-entities" }
-waremax-policies = { path = "crates/waremax-policies" }
-waremax-config = { path = "crates/waremax-config" }
-waremax-metrics = { path = "crates/waremax-metrics" }
-waremax-sim = { path = "crates/waremax-sim" }
-waremax-testing = { path = "crates/waremax-testing" }
-waremax-analysis = { path = "crates/waremax-analysis" }
-waremax-ui = { path = "crates/waremax-ui" }
+waremax-core = { version = "0.1.0", path = "crates/waremax-core" }
+waremax-map = { version = "0.1.0", path = "crates/waremax-map" }
+waremax-storage = { version = "0.1.0", path = "crates/waremax-storage" }
+waremax-entities = { version = "0.1.0", path = "crates/waremax-entities" }
+waremax-policies = { version = "0.1.0", path = "crates/waremax-policies" }
+waremax-config = { version = "0.1.0", path = "crates/waremax-config" }
+waremax-metrics = { version = "0.1.0", path = "crates/waremax-metrics" }
+waremax-sim = { version = "0.1.0", path = "crates/waremax-sim" }
+waremax-testing = { version = "0.1.0", path = "crates/waremax-testing" }
+waremax-analysis = { version = "0.1.0", path = "crates/waremax-analysis" }
+waremax-ui = { version = "0.1.0", path = "crates/waremax-ui" }
 
 [package]
 name = "waremax"
