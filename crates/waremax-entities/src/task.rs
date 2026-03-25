@@ -5,17 +5,12 @@ use waremax_core::{NodeId, OrderId, RobotId, SimTime, SkuId, StationId, TaskId};
 use waremax_storage::rack::BinAddress;
 
 /// Type of task
-#[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq, Default)]
 pub enum TaskType {
+    #[default]
     Pick,
     Putaway,
     Replenishment,
-}
-
-impl Default for TaskType {
-    fn default() -> Self {
-        TaskType::Pick
-    }
 }
 
 /// Location of a bin with its access node
@@ -35,8 +30,9 @@ impl BinLocation {
 }
 
 /// Task status
-#[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq, Default)]
 pub enum TaskStatus {
+    #[default]
     Pending,
     Assigned { robot: RobotId },
     MovingToPickup,
@@ -45,12 +41,6 @@ pub enum TaskStatus {
     AtStation,
     Completed,
     Failed { reason: String },
-}
-
-impl Default for TaskStatus {
-    fn default() -> Self {
-        TaskStatus::Pending
-    }
 }
 
 /// A task to be executed by a robot

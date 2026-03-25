@@ -196,6 +196,7 @@ impl Default for CriticalPathSummary {
 
 impl CriticalPathSummary {
     /// Format as a human-readable string
+    #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
         let mut output = String::new();
         output.push_str("Critical Path Summary\n");

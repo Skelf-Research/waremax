@@ -135,6 +135,7 @@ pub struct SimulationReport {
 }
 
 impl SimulationReport {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         duration_s: f64,
         events_processed: u64,

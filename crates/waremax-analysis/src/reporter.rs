@@ -10,9 +10,10 @@ use std::path::Path;
 use crate::analyzer::RootCauseAnalysisReport;
 
 /// Output format for reports
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ReportFormat {
     /// Plain text format
+    #[default]
     Text,
     /// JSON format
     Json,
@@ -20,15 +21,9 @@ pub enum ReportFormat {
     Compact,
 }
 
-impl Default for ReportFormat {
-    fn default() -> Self {
-        ReportFormat::Text
-    }
-}
-
 impl ReportFormat {
     /// Parse from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "text" | "txt" => Some(ReportFormat::Text),
             "json" => Some(ReportFormat::Json),
@@ -158,9 +153,9 @@ impl RCAReporter {
 
     fn text_header(&self) -> String {
         let mut s = String::new();
-        s.push_str("\n");
+        s.push('\n');
         s.push_str(&"=".repeat(70));
-        s.push_str("\n");
+        s.push('\n');
         s.push_str("                     ROOT CAUSE ANALYSIS REPORT\n");
         s.push_str(&"=".repeat(70));
         s.push_str("\n\n");
@@ -169,11 +164,11 @@ impl RCAReporter {
 
     fn text_footer(&self) -> String {
         let mut s = String::new();
-        s.push_str("\n");
+        s.push('\n');
         s.push_str(&"=".repeat(70));
         s.push_str("\n                         END OF REPORT\n");
         s.push_str(&"=".repeat(70));
-        s.push_str("\n");
+        s.push('\n');
         s
     }
 
@@ -415,7 +410,7 @@ impl RCAReporter {
 
         s.push_str("RCA Summary\n");
         s.push_str(&"=".repeat(50));
-        s.push_str("\n");
+        s.push('\n');
 
         s.push_str(&format!(
             "Health Score: {:.0}/100\n",
@@ -556,12 +551,12 @@ mod tests {
 
     #[test]
     fn test_format_parsing() {
-        assert_eq!(ReportFormat::from_str("text"), Some(ReportFormat::Text));
-        assert_eq!(ReportFormat::from_str("JSON"), Some(ReportFormat::Json));
+        assert_eq!(ReportFormat::parse("text"), Some(ReportFormat::Text));
+        assert_eq!(ReportFormat::parse("JSON"), Some(ReportFormat::Json));
         assert_eq!(
-            ReportFormat::from_str("compact"),
+            ReportFormat::parse("compact"),
             Some(ReportFormat::Compact)
         );
-        assert_eq!(ReportFormat::from_str("invalid"), None);
+        assert_eq!(ReportFormat::parse("invalid"), None);
     }
 }

@@ -41,20 +41,20 @@ impl EventLog {
     /// Open or create an event log at the specified path
     pub fn open(path: &Path, config: EventLogConfig) -> io::Result<Self> {
         let db = sled::open(path)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
+            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
 
         let events = db
             .open_tree("events")
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
+            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
 
         let metadata = db
             .open_tree("metadata")
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
+            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
 
         // Get current event count from metadata
         let event_count = metadata
             .get("event_count")
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?
+            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?
             .map(|v| {
                 let bytes: [u8; 8] = v.as_ref().try_into().unwrap_or([0; 8]);
                 u64::from_be_bytes(bytes)
@@ -84,11 +84,11 @@ impl EventLog {
 
         // Insert into database
         self.events
-            .insert(&key, value)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
+            .insert(key, value)
+            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
 
         // Periodic flush
-        if self.event_count % self.config.flush_every as u64 == 0 {
+        if self.event_count.is_multiple_of(self.config.flush_every as u64) {
             self.flush()?;
         }
 
@@ -100,11 +100,11 @@ impl EventLog {
         // Update event count in metadata
         self.metadata
             .insert("event_count", &self.event_count.to_be_bytes())
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
+            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
 
         self.db
             .flush()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
+            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
 
         Ok(())
     }
@@ -135,7 +135,7 @@ impl EventLog {
     pub fn get_metadata(&self, key: &str) -> io::Result<Option<String>> {
         self.metadata
             .get(key)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?
+            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?
             .map(|v| String::from_utf8(v.to_vec()))
             .transpose()
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
@@ -145,7 +145,7 @@ impl EventLog {
     pub fn set_metadata(&self, key: &str, value: &str) -> io::Result<()> {
         self.metadata
             .insert(key, value.as_bytes())
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))?;
+            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
         Ok(())
     }
 
@@ -176,7 +176,7 @@ impl Iterator for EventLogIterator {
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|result| {
             result
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("sled error: {:?}", e)))
+                .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))
                 .and_then(|(_, value)| {
                     serde_json::from_slice(&value)
                         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))

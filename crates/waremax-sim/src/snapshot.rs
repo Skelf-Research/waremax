@@ -85,6 +85,7 @@ pub struct SerializedEvent {
 
 impl WorldSnapshot {
     /// Create a snapshot from simulation state
+    #[allow(clippy::too_many_arguments)]
     pub fn capture(
         timestamp: SimTime,
         robots: &HashMap<RobotId, waremax_entities::Robot>,

@@ -103,7 +103,7 @@ impl LinesDistribution for NegBinomialLines {
     }
 
     fn next_lines(&self, rng: &mut SimRng) -> u32 {
-        rng.negbin(self.mean, self.dispersion).max(1) as u32
+        rng.negbin(self.mean, self.dispersion).max(1)
     }
 }
 
@@ -124,7 +124,7 @@ impl LinesDistribution for PoissonLines {
     }
 
     fn next_lines(&self, rng: &mut SimRng) -> u32 {
-        rng.poisson(self.mean).max(1) as u32
+        rng.poisson(self.mean).max(1)
     }
 }
 

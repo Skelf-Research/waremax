@@ -667,9 +667,9 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
             return false;
         }
         // Every other row is a rack row (rows 2, 4, 6, etc.)
-        let is_rack_row = row % 2 == 0;
+        let is_rack_row = row.is_multiple_of(2);
         // Every 3rd column is a main aisle, others can be racks
-        let is_rack_col = col % 3 != 0;
+        let is_rack_col = !col.is_multiple_of(3);
         is_rack_row && is_rack_col
     }
 
@@ -732,7 +732,7 @@ fn build_world_from_config(scenario: &ScenarioConfig, seed: u64) -> World {
     // Add robots - distribute them across the grid
     for i in 0..scenario.robots.count {
         // Spread robots across the grid, avoiding station nodes initially
-        let mut start_node = ((i * 7) % total_nodes) as u32; // Use prime multiplier for better spread
+        let mut start_node = (i * 7) % total_nodes; // Use prime multiplier for better spread
                                                              // Skip station nodes for initial placement
         while station_nodes.contains(&start_node) {
             start_node = (start_node + 1) % total_nodes;

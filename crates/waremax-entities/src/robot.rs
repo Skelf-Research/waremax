@@ -7,9 +7,10 @@ use waremax_core::{
 };
 
 /// Robot state in the simulation
-#[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[derive(Archive, Deserialize, Serialize, Clone, Debug, PartialEq, Default)]
 pub enum RobotState {
     /// Robot is idle and available for tasks
+    #[default]
     Idle,
     /// Robot is moving to a destination
     Moving { destination: NodeId },
@@ -243,11 +244,6 @@ impl Default for FailureModel {
     }
 }
 
-impl Default for RobotState {
-    fn default() -> Self {
-        RobotState::Idle
-    }
-}
 
 /// A robot in the warehouse
 #[derive(Clone, Debug)]

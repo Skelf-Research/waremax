@@ -449,6 +449,7 @@ impl EventHandler {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn handle_robot_depart(
         &self,
         kernel: &mut Kernel,
@@ -769,6 +770,7 @@ impl EventHandler {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn handle_service_end(
         &self,
         kernel: &mut Kernel,
@@ -1040,7 +1042,7 @@ impl EventHandler {
         }
 
         // Record node/edge occupancy
-        for (node_id, _node) in &world.map.nodes {
+        for node_id in world.map.nodes.keys() {
             let occupancy = world.traffic.get_node_occupancy(*node_id);
             if occupancy > 0 {
                 world.time_series.record_node_occupancy(*node_id, occupancy);
@@ -1557,6 +1559,7 @@ impl EventHandler {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn handle_maintenance_start(
         &self,
         kernel: &mut Kernel,
@@ -1635,6 +1638,7 @@ impl EventHandler {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn handle_maintenance_end(
         &self,
         kernel: &mut Kernel,

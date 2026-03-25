@@ -67,14 +67,14 @@ pub struct RerouteOnWaitPolicy {
     /// Wait threshold before attempting reroute (seconds)
     wait_threshold_s: f64,
     /// Maximum reroute attempts before falling back to wait
-    max_reroute_attempts: u32,
+    _max_reroute_attempts: u32,
 }
 
 impl RerouteOnWaitPolicy {
     pub fn new(wait_threshold_s: f64, max_reroute_attempts: u32) -> Self {
         Self {
             wait_threshold_s,
-            max_reroute_attempts,
+            _max_reroute_attempts: max_reroute_attempts,
         }
     }
 
@@ -134,12 +134,11 @@ impl TrafficPolicy for AdaptiveTrafficPolicy {
         let node_congestion = ctx.traffic.get_node_occupancy(ctx.current_node);
 
         // If congestion is high, reroute sooner
-        if edge_congestion >= self.congestion_threshold
-            || node_congestion >= self.congestion_threshold
+        if (edge_congestion >= self.congestion_threshold
+            || node_congestion >= self.congestion_threshold)
+            && ctx.wait_duration.as_seconds() >= self.base_wait_s * 0.5
         {
-            if ctx.wait_duration.as_seconds() >= self.base_wait_s * 0.5 {
-                return TrafficAction::Reroute;
-            }
+            return TrafficAction::Reroute;
         }
 
         // Normal wait threshold

@@ -88,7 +88,7 @@ impl Inventory {
         self.sku_locations.get(&sku_id)?.iter().find(|addr| {
             self.bins
                 .get(*addr)
-                .map_or(false, |s| s.quantity >= min_qty)
+                .is_some_and(|s| s.quantity >= min_qty)
         })
     }
 
@@ -136,7 +136,7 @@ impl Inventory {
     pub fn get_empty_bins(&self) -> Vec<&BinAddress> {
         self.all_bins
             .iter()
-            .filter(|addr| self.bins.get(*addr).map_or(true, |slot| slot.quantity == 0))
+            .filter(|addr| self.bins.get(*addr).is_none_or(|slot| slot.quantity == 0))
             .collect()
     }
 

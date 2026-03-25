@@ -209,6 +209,7 @@ pub struct ComparisonReport {
 
 impl ComparisonReport {
     /// Format the report as a string
+    #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
         let mut output = format!(
             "Comparison: {} vs {}\n",
@@ -296,35 +297,32 @@ impl ScenarioComparator {
             .collect();
 
         // Create comparisons
-        let mut metrics = Vec::new();
-
-        metrics.push(MetricComparison::compare(
-            "Throughput (orders/hr)",
-            &baseline_throughput,
-            &variant_throughput,
-            true, // Higher is better
-        ));
-
-        metrics.push(MetricComparison::compare(
-            "P95 Cycle Time (s)",
-            &baseline_p95,
-            &variant_p95,
-            false, // Lower is better
-        ));
-
-        metrics.push(MetricComparison::compare(
-            "Robot Utilization",
-            &baseline_robot_util,
-            &variant_robot_util,
-            true, // Higher is better (up to a point)
-        ));
-
-        metrics.push(MetricComparison::compare(
-            "Station Utilization",
-            &baseline_station_util,
-            &variant_station_util,
-            true, // Higher is better (up to a point)
-        ));
+        let metrics = vec![
+            MetricComparison::compare(
+                "Throughput (orders/hr)",
+                &baseline_throughput,
+                &variant_throughput,
+                true, // Higher is better
+            ),
+            MetricComparison::compare(
+                "P95 Cycle Time (s)",
+                &baseline_p95,
+                &variant_p95,
+                false, // Lower is better
+            ),
+            MetricComparison::compare(
+                "Robot Utilization",
+                &baseline_robot_util,
+                &variant_robot_util,
+                true, // Higher is better (up to a point)
+            ),
+            MetricComparison::compare(
+                "Station Utilization",
+                &baseline_station_util,
+                &variant_station_util,
+                true, // Higher is better (up to a point)
+            ),
+        ];
 
         // Generate summary
         let improvements: Vec<_> = metrics
@@ -384,7 +382,7 @@ impl ScenarioComparator {
             .results
             .iter()
             .map(|(label, results)| {
-                let samples: Vec<f64> = results.iter().map(|r| extractor(r)).collect();
+                let samples: Vec<f64> = results.iter().map(&extractor).collect();
                 (label.clone(), AggregatedStats::from_samples(&samples))
             })
             .collect();
