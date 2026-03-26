@@ -85,11 +85,10 @@ impl Inventory {
     }
 
     pub fn find_sku_with_stock(&self, sku_id: SkuId, min_qty: u32) -> Option<&BinAddress> {
-        self.sku_locations.get(&sku_id)?.iter().find(|addr| {
-            self.bins
-                .get(*addr)
-                .is_some_and(|s| s.quantity >= min_qty)
-        })
+        self.sku_locations
+            .get(&sku_id)?
+            .iter()
+            .find(|addr| self.bins.get(*addr).is_some_and(|s| s.quantity >= min_qty))
     }
 
     pub fn decrement(&mut self, address: &BinAddress, qty: u32) -> Result<(), InventoryError> {

@@ -244,7 +244,6 @@ impl Default for FailureModel {
     }
 }
 
-
 /// A robot in the warehouse
 #[derive(Clone, Debug)]
 pub struct Robot {

@@ -553,10 +553,7 @@ mod tests {
     fn test_format_parsing() {
         assert_eq!(ReportFormat::parse("text"), Some(ReportFormat::Text));
         assert_eq!(ReportFormat::parse("JSON"), Some(ReportFormat::Json));
-        assert_eq!(
-            ReportFormat::parse("compact"),
-            Some(ReportFormat::Compact)
-        );
+        assert_eq!(ReportFormat::parse("compact"), Some(ReportFormat::Compact));
         assert_eq!(ReportFormat::parse("invalid"), None);
     }
 }

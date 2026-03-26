@@ -40,8 +40,7 @@ pub struct EventLog {
 impl EventLog {
     /// Open or create an event log at the specified path
     pub fn open(path: &Path, config: EventLogConfig) -> io::Result<Self> {
-        let db = sled::open(path)
-            .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
+        let db = sled::open(path).map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
 
         let events = db
             .open_tree("events")
@@ -88,7 +87,10 @@ impl EventLog {
             .map_err(|e| io::Error::other(format!("sled error: {:?}", e)))?;
 
         // Periodic flush
-        if self.event_count.is_multiple_of(self.config.flush_every as u64) {
+        if self
+            .event_count
+            .is_multiple_of(self.config.flush_every as u64)
+        {
             self.flush()?;
         }
 

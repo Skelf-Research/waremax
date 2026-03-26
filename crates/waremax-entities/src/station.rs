@@ -8,7 +8,15 @@ use waremax_core::{NodeId, RobotId, SimTime, StationId};
 
 /// Type of station
 #[derive(
-    Archive, Deserialize, Serialize, SerdeDeserialize, SerdeSerialize, Clone, Debug, PartialEq, Default,
+    Archive,
+    Deserialize,
+    Serialize,
+    SerdeDeserialize,
+    SerdeSerialize,
+    Clone,
+    Debug,
+    PartialEq,
+    Default,
 )]
 pub enum StationType {
     #[default]

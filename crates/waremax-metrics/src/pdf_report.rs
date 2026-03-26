@@ -250,9 +250,8 @@ impl PdfReportGenerator {
         // Save the document
         let file = File::create(output_path)?;
         let mut buf_writer = BufWriter::new(file);
-        doc.save(&mut buf_writer).map_err(|e| {
-            io::Error::other(format!("PDF save error: {:?}", e))
-        })?;
+        doc.save(&mut buf_writer)
+            .map_err(|e| io::Error::other(format!("PDF save error: {:?}", e)))?;
 
         Ok(())
     }
