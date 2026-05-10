@@ -10,6 +10,7 @@ description = "Pluggable policies for Waremax simulation"
 waremax-core = { workspace = true }
 waremax-map = { workspace = true }
 waremax-entities = { workspace = true }
+waremax-statemachine = { workspace = true }
 waremax-storage = { workspace = true }
 
 [dev-dependencies]

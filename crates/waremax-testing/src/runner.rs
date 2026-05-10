@@ -236,6 +236,17 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
         scenario.traffic.edge_capacity_default,
     );
 
+    // v4: Register edge lengths in traffic manager for continuous tracking
+    for (edge_id, edge) in &world.map.edges {
+        world.traffic.register_edge_length(*edge_id, edge.length_m);
+    }
+
+    // v4: Set position update interval if using continuous policy
+    if scenario.traffic.edge_traffic_policy == "continuous" {
+        world.position_update_interval_s =
+            Some(scenario.traffic.continuous.position_update_interval_s);
+    }
+
     let total_nodes = grid_size * grid_size;
 
     // Add robots

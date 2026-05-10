@@ -10,9 +10,10 @@ use waremax_entities::{ChargingStation, MaintenanceStation, Order, Robot, Statio
 use waremax_map::{NodeType, ReservationManager, Router, TrafficManager, WarehouseMap};
 use waremax_metrics::{EventTraceCollector, TimeSeriesCollector};
 use waremax_policies::{
-    BatchingPolicy, DeadlockResolver, LeastQueuePolicy, NearestRobotPolicy, NoBatchingPolicy,
-    PolicyContext, PriorityPolicy, StationAssignmentPolicy, StrictPriorityPolicy,
-    TaskAllocationPolicy, TrafficPolicy, WaitAtNodePolicy, YoungestRobotBacksUp,
+    BatchingPolicy, CoarseTrafficPolicy, DeadlockResolver, EdgeTrafficPolicy, LeastQueuePolicy,
+    NearestRobotPolicy, NoBatchingPolicy, PolicyContext, PriorityPolicy,
+    StationAssignmentPolicy, StrictPriorityPolicy, TaskAllocationPolicy, TrafficPolicy,
+    WaitAtNodePolicy, YoungestRobotBacksUp,
 };
 use waremax_storage::{BinAddress, Inventory, Rack, Sku, SkuCatalog};
 
@@ -26,6 +27,8 @@ pub struct PolicySet {
     pub priority: Box<dyn PriorityPolicy>,
     /// v1: Traffic policy for handling congestion
     pub traffic: Box<dyn TrafficPolicy>,
+    /// v4: Edge traffic control policy (entry/leave/position tracking)
+    pub edge_traffic: Box<dyn EdgeTrafficPolicy>,
 }
 
 impl PolicySet {
@@ -40,13 +43,14 @@ impl PolicySet {
     }
 
     /// Get all policy names including traffic (v1)
-    pub fn all_names(&self) -> (String, String, String, String, String) {
+    pub fn all_names(&self) -> (String, String, String, String, String, String) {
         (
             self.task_allocation.name().to_string(),
             self.station_assignment.name().to_string(),
             self.batching.name().to_string(),
             self.priority.name().to_string(),
             self.traffic.name().to_string(),
+            self.edge_traffic.name().to_string(),
         )
     }
 }
@@ -59,6 +63,7 @@ impl Default for PolicySet {
             batching: Box::new(NoBatchingPolicy::new()),
             priority: Box::new(StrictPriorityPolicy::new()),
             traffic: Box::new(WaitAtNodePolicy::new()),
+            edge_traffic: Box::new(CoarseTrafficPolicy::new()),
         }
     }
 }
@@ -124,6 +129,9 @@ pub struct World {
 
     /// v5: Attribution collector for RCA
     pub attribution_collector: AttributionCollector,
+
+    /// v4: Position update interval for continuous traffic policy (None if coarse)
+    pub position_update_interval_s: Option<f64>,
 }
 
 impl World {
@@ -156,6 +164,7 @@ impl World {
             reservation_manager: ReservationManager::new(),
             trace_collector: EventTraceCollector::default(),
             attribution_collector: AttributionCollector::new(),
+            position_update_interval_s: None,
         }
     }
 

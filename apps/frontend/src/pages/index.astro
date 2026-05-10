@@ -1,0 +1,87 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const articles = await getCollection('articles', ({ data }) => !data.draft);
+const recentArticles = [...articles]
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 3);
+---
+
+<Layout title="Waremax - Warehouse Robot Simulation Platform">
+  <div class="max-w-7xl mx-auto px-6 py-16">
+    <div class="text-center mb-16">
+      <h1 class="text-5xl font-bold mb-6 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+        Waremax
+      </h1>
+      <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+        A discrete-event simulation engine for warehouse robot fleets.
+        Design layouts, test policies, and optimize throughput before deploying to production.
+      </p>
+      <div class="mt-8 flex gap-4 justify-center">
+        <a href="/simulation"
+          class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors">
+          Launch Simulation
+        </a>
+        <a href="/articles"
+          class="px-6 py-3 border border-gray-600 hover:border-gray-400 text-gray-300 rounded-lg font-medium transition-colors">
+          Read Documentation
+        </a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+      <div class="bg-[var(--warehouse-surface)] border border-[var(--warehouse-border)] rounded-lg p-6 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300">
+        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-2xl mb-4">
+          🧱
+        </div>
+        <h3 class="text-lg font-semibold mb-2">Pluggable Policies</h3>
+        <p class="text-gray-400 text-sm">
+          Swap task allocation, station assignment, traffic control, and routing algorithms
+          without recompiling the engine.
+        </p>
+      </div>
+      <div class="bg-[var(--warehouse-surface)] border border-[var(--warehouse-border)] rounded-lg p-6 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300">
+        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-2xl mb-4">
+          🤖
+        </div>
+        <h3 class="text-lg font-semibold mb-2">Realistic Robotics</h3>
+        <p class="text-gray-400 text-sm">
+          Battery drain, charging cycles, random failures, scheduled maintenance,
+          and continuous sub-edge position tracking.
+        </p>
+      </div>
+      <div class="bg-[var(--warehouse-surface)] border border-[var(--warehouse-border)] rounded-lg p-6 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300">
+        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-2xl mb-4">
+          📊
+        </div>
+        <h3 class="text-lg font-semibold mb-2">Rich Analytics</h3>
+        <p class="text-gray-400 text-sm">
+          Throughput, utilization, SLA tracking, bottleneck detection,
+          root-cause analysis, and replay support.
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Recent Articles</h2>
+        <a href="/articles" class="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
+          View all articles &rarr;
+        </a>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {recentArticles.map((article) => (
+          <a href={`/articles/${article.slug}`}
+            class="block bg-[var(--warehouse-surface)] border border-[var(--warehouse-border)] rounded-lg p-6 hover:-translate-y-1 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300">
+            <h3 class="font-semibold mb-2">{article.data.title}</h3>
+            <p class="text-gray-400 text-sm mb-4">{article.data.description}</p>
+            <div class="text-xs text-gray-500">
+              {article.data.pubDate.toLocaleDateString()} &middot; {article.data.author}
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+</Layout>

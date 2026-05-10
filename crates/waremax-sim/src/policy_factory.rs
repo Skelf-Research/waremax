@@ -3,8 +3,9 @@
 use crate::world::PolicySet;
 use waremax_config::{PolicyConfig, TrafficConfig};
 use waremax_policies::{
-    AdaptiveTrafficPolicy, BatchingPolicy, DueTimePolicy, FifoPolicy, LeastBusyPolicy,
-    LeastQueuePolicy, NearestRobotPolicy, NearestStationPolicy, NoBatchingPolicy, PriorityPolicy,
+    AdaptiveTrafficPolicy, BatchingPolicy, CoarseTrafficPolicy, ContinuousTrafficPolicy,
+    DueTimePolicy, EdgeTrafficPolicy, FifoPolicy, LeastBusyPolicy, LeastQueuePolicy,
+    NearestRobotPolicy, NearestStationPolicy, NoBatchingPolicy, PriorityPolicy,
     RerouteOnWaitPolicy, RoundRobinPolicy, StationAssignmentPolicy, StrictPriorityPolicy,
     TaskAllocationPolicy, TrafficPolicy, WaitAtNodePolicy, ZoneBatchingPolicy,
 };
@@ -17,6 +18,7 @@ pub fn create_policies(config: &PolicyConfig) -> PolicySet {
         batching: create_batching(config),
         priority: create_priority(config),
         traffic: Box::new(WaitAtNodePolicy::new()), // Default traffic policy
+        edge_traffic: Box::new(CoarseTrafficPolicy::new()), // Default edge traffic policy
     }
 }
 
@@ -31,6 +33,7 @@ pub fn create_policies_with_traffic(
         batching: create_batching(config),
         priority: create_priority(config),
         traffic: create_traffic_policy(traffic_config),
+        edge_traffic: create_edge_traffic_policy(traffic_config),
     }
 }
 
@@ -51,6 +54,23 @@ fn create_traffic_policy(config: &TrafficConfig) -> Box<dyn TrafficPolicy> {
                 unknown
             );
             Box::new(WaitAtNodePolicy::new())
+        }
+    }
+}
+
+fn create_edge_traffic_policy(config: &TrafficConfig) -> Box<dyn EdgeTrafficPolicy> {
+    match config.edge_traffic_policy.as_str() {
+        "coarse" => Box::new(CoarseTrafficPolicy::new()),
+        "continuous" => Box::new(ContinuousTrafficPolicy::new(
+            config.continuous.safety_distance_m,
+            config.continuous.position_update_interval_s,
+        )),
+        unknown => {
+            eprintln!(
+                "Warning: Unknown edge traffic policy '{}', using coarse",
+                unknown
+            );
+            Box::new(CoarseTrafficPolicy::new())
         }
     }
 }

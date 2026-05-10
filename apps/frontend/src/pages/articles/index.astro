@@ -1,0 +1,37 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const articles = await getCollection('articles', ({ data }) => !data.draft);
+const sorted = [...articles].sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+function readingTime(body: string) {
+  const words = body.split(/\s+/).filter(Boolean).length;
+  return Math.ceil(words / 200);
+}
+---
+
+<Layout title="Articles - Waremax">
+  <div class="max-w-7xl mx-auto px-6 py-12">
+    <h1 class="text-3xl font-bold mb-2">Articles & Documentation</h1>
+    <p class="text-gray-400 text-sm mb-8">{sorted.length} article{sorted.length !== 1 ? 's' : ''}</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {sorted.map((article) => (
+        <a href={`/articles/${article.slug}`}
+          class="block bg-[var(--warehouse-surface)] border border-[var(--warehouse-border)] rounded-lg p-6 hover:-translate-y-1 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300">
+          <h2 class="font-semibold mb-2">{article.data.title}</h2>
+          <p class="text-gray-400 text-sm mb-4">{article.data.description}</p>
+          <div class="flex flex-wrap gap-2 mb-3">
+            {article.data.tags.map((tag) => (
+              <span class="text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-1 rounded">{tag}</span>
+            ))}
+          </div>
+          <div class="text-xs text-gray-500">
+            {article.data.pubDate.toLocaleDateString()} &middot; {article.data.author} &middot; {readingTime(article.body)} min read
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</Layout>

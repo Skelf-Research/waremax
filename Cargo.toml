@@ -11,7 +11,9 @@ members = [
     "crates/waremax-sim",
     "crates/waremax-testing",
     "crates/waremax-analysis",
-    "crates/waremax-ui",
+    "crates/waremax-api",
+    "crates/waremax-api-server",
+    "crates/waremax-statemachine",
 ]
 
 [workspace.package]
@@ -56,7 +58,9 @@ waremax-metrics = { version = "0.1.0", path = "crates/waremax-metrics" }
 waremax-sim = { version = "0.1.0", path = "crates/waremax-sim" }
 waremax-testing = { version = "0.1.0", path = "crates/waremax-testing" }
 waremax-analysis = { version = "0.1.0", path = "crates/waremax-analysis" }
-waremax-ui = { version = "0.1.0", path = "crates/waremax-ui" }
+waremax-api = { version = "0.1.0", path = "crates/waremax-api" }
+waremax-api-server = { version = "0.1.0", path = "crates/waremax-api-server" }
+waremax-statemachine = { version = "0.1.0", path = "crates/waremax-statemachine" }
 
 [package]
 name = "waremax"
@@ -78,10 +82,11 @@ waremax-metrics = { workspace = true }
 waremax-sim = { workspace = true }
 waremax-testing = { workspace = true }
 waremax-analysis = { workspace = true }
-waremax-ui = { workspace = true }
+waremax-api = { workspace = true }
 mimalloc = { workspace = true }
 clap = { workspace = true }
 anyhow = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 tokio = { version = "1.0", features = ["full"] }
+axum = { version = "0.7", features = ["ws", "macros"] }

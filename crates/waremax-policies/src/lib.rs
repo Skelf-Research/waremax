@@ -6,7 +6,9 @@ pub mod deadlock;
 pub mod destination;
 pub mod priority;
 pub mod station;
+pub mod robot_state_machine;
 pub mod traffic;
+pub mod traffic_control;
 pub mod traits;
 
 pub use traits::*;
@@ -34,9 +36,17 @@ pub use destination::{DestinationContext, DestinationPolicy, NearestEmptyBinPoli
 pub use traffic::{AdaptiveTrafficPolicy, RerouteOnWaitPolicy, WaitAtNodePolicy};
 pub use traffic::{TrafficAction, TrafficPolicy, TrafficPolicyContext};
 
+// Edge traffic control policies (v4)
+pub use traffic_control::{
+    CoarseTrafficPolicy, ContinuousTrafficPolicy, EdgeTrafficPolicy,
+};
+
 // Deadlock resolution policies (v2)
 pub use deadlock::create_deadlock_resolver;
 pub use deadlock::{DeadlockContext, DeadlockResolution, DeadlockResolver};
 pub use deadlock::{
     LowestPriorityAborts, TieredResolver, WaitAndRetryResolver, YoungestRobotBacksUp,
 };
+
+// Robot state machine policy (v4)
+pub use robot_state_machine::RobotStateMachinePolicy;

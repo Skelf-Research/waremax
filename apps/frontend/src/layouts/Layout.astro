@@ -1,0 +1,55 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Waremax - Warehouse Robot Simulation Platform' } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+  <meta name="generator" content={Astro.generator} />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="canonical" href={Astro.url} />
+  <title>{title}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Waremax" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+</head>
+<body class="min-h-screen flex flex-col">
+  <nav class="border-b border-[var(--warehouse-border)] bg-[var(--warehouse-surface)]">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="/" class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+        Waremax
+      </a>
+      <div class="flex gap-6 text-sm">
+        <a href="/" class="text-gray-400 hover:text-white transition-colors">Home</a>
+        <a href="/simulation" class="text-gray-400 hover:text-white transition-colors">Simulation</a>
+        <a href="/articles" class="text-gray-400 hover:text-white transition-colors">Articles</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-1">
+    <slot />
+  </main>
+
+  <footer class="border-t border-[var(--warehouse-border)] bg-[var(--warehouse-surface)] py-6">
+    <div class="max-w-7xl mx-auto px-6 text-center text-sm text-gray-500">
+      Waremax Simulation Platform &copy; {new Date().getFullYear()}
+    </div>
+  </footer>
+</body>
+</html>

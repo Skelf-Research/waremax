@@ -1,0 +1,18 @@
+[package]
+name = "waremax-api-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Standalone server binary for the Waremax simulation API"
+
+[[bin]]
+name = "waremax-api-server"
+path = "src/main.rs"
+
+[dependencies]
+waremax-api = { workspace = true }
+axum = { version = "0.7", features = ["ws", "macros"] }
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

@@ -200,8 +200,79 @@ impl EventHandler {
                     metrics,
                 );
             }
+            SimEvent::RobotPositionUpdate {
+                robot_id,
+                edge_id,
+                from_node,
+                to_node,
+                progress,
+            } => {
+                self.handle_robot_position_update(
+                    kernel,
+                    world,
+                    current_time,
+                    *robot_id,
+                    *edge_id,
+                    *from_node,
+                    *to_node,
+                    *progress,
+                );
+            }
             _ => {
                 // Handle other events as needed (inbound/outbound flow - future)
+            }
+        }
+    }
+
+    /// v4: Handle robot position update during edge traversal
+    fn handle_robot_position_update(
+        &self,
+        kernel: &mut Kernel,
+        world: &mut World,
+        _current_time: SimTime,
+        robot_id: waremax_core::RobotId,
+        edge_id: waremax_core::EdgeId,
+        from_node: waremax_core::NodeId,
+        to_node: waremax_core::NodeId,
+        progress: f64,
+    ) {
+        // Delegate to edge traffic policy
+        world
+            .policies
+            .edge_traffic
+            .on_position_update(&mut world.traffic, edge_id, robot_id, progress);
+
+        // Get edge length and robot speed for scheduling next update
+        let edge_length = world
+            .map
+            .get_edge(edge_id)
+            .map(|e| e.length_m)
+            .unwrap_or(0.0);
+
+        if let Some(robot) = world.get_robot(robot_id) {
+            let travel_time = robot.travel_time(edge_length);
+
+            // If there's still time until arrival, schedule next position update
+            if progress < 1.0 {
+                if let Some(interval) = get_position_update_interval(world) {
+                    let elapsed = progress * travel_time.as_seconds();
+                    let total = travel_time.as_seconds();
+                    let remaining = total - elapsed;
+                    if remaining > interval {
+                        let next_progress =
+                            ((elapsed + interval) / total).clamp(0.0, 1.0);
+                        kernel.schedule_after(
+                            SimTime::from_seconds(interval),
+                            SimEvent::RobotPositionUpdate {
+                                robot_id,
+                                edge_id,
+                                from_node,
+                                to_node,
+                                progress: next_progress,
+                            },
+                        );
+                    }
+                }
             }
         }
     }
@@ -461,8 +532,12 @@ impl EventHandler {
         edge_id: waremax_core::EdgeId,
         _metrics: &mut MetricsCollector,
     ) {
-        // Check if edge is available
-        if !world.traffic.can_enter_edge(edge_id, robot_id) {
+        // v4: Use edge traffic policy for entry check
+        if !world
+            .policies
+            .edge_traffic
+            .can_enter_edge(&world.traffic, edge_id, robot_id, from_node, to_node)
+        {
             // v1: Record wait event for congestion metrics
             world
                 .time_series
@@ -492,9 +567,15 @@ impl EventHandler {
         // v2: Clear wait status since we successfully entered the edge
         world.traffic.clear_wait(robot_id);
 
-        // Update traffic
-        world.traffic.leave_node(from_node, robot_id);
-        world.traffic.enter_edge(edge_id, robot_id);
+        // v4: Use edge traffic policy for enter/leave callbacks
+        world
+            .policies
+            .edge_traffic
+            .on_leave_node(&mut world.traffic, from_node, robot_id);
+        world
+            .policies
+            .edge_traffic
+            .on_enter_edge(&mut world.traffic, edge_id, robot_id, from_node, to_node);
 
         // v1: Record edge traversal for congestion metrics
         world.time_series.record_edge_traversal(edge_id);
@@ -527,6 +608,28 @@ impl EventHandler {
         if let (Some(robot), Some(edge)) = (world.get_robot(robot_id), world.map.get_edge(edge_id))
         {
             let travel_time = robot.travel_time(edge.length_m);
+            let arrival_time = current_time + travel_time;
+
+            // v4: If using continuous policy, schedule position updates
+            if let Some(interval) = get_position_update_interval(world) {
+                    let mut next_time = current_time + SimTime::from_seconds(interval);
+                    while next_time < arrival_time {
+                        let progress =
+                            (next_time - current_time).as_seconds() / travel_time.as_seconds();
+                        kernel.schedule_at(
+                            next_time,
+                            SimEvent::RobotPositionUpdate {
+                                robot_id,
+                                edge_id,
+                                from_node,
+                                to_node,
+                                progress: progress.clamp(0.0, 1.0),
+                            },
+                        );
+                        next_time = next_time + SimTime::from_seconds(interval);
+                    }
+            }
+
             kernel.schedule_after(
                 travel_time,
                 SimEvent::RobotArriveNode {
@@ -553,11 +656,18 @@ impl EventHandler {
             .neighbors(from_node)
             .find(|(n, _, _)| *n == node_id)
         {
-            world.traffic.leave_edge(edge_id, robot_id);
+            // v4: Use edge traffic policy for leave
+            world
+                .policies
+                .edge_traffic
+                .on_leave_edge(&mut world.traffic, edge_id, robot_id);
         }
 
-        // Update traffic and robot state
-        world.traffic.enter_node(node_id, robot_id);
+        // v4: Use edge traffic policy for enter node
+        world
+            .policies
+            .edge_traffic
+            .on_enter_node(&mut world.traffic, node_id, robot_id);
 
         if let Some(robot) = world.get_robot_mut(robot_id) {
             robot.current_node = node_id;
@@ -1695,6 +1805,11 @@ impl EventHandler {
         // Schedule task dispatch to assign work to now-available robot
         kernel.schedule_now(SimEvent::DispatchTasks);
     }
+}
+
+/// v4: Helper to get position update interval from the active edge traffic policy
+fn get_position_update_interval(world: &World) -> Option<f64> {
+    world.position_update_interval_s
 }
 
 impl Default for EventHandler {

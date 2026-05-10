@@ -671,6 +671,17 @@ fn build_world_from_scenario(
         scenario.traffic.edge_capacity_default,
     );
 
+    // v4: Register edge lengths in traffic manager for continuous tracking
+    for (edge_id, edge) in &world.map.edges {
+        world.traffic.register_edge_length(*edge_id, edge.length_m);
+    }
+
+    // v4: Set position update interval if using continuous policy
+    if scenario.traffic.edge_traffic_policy == "continuous" {
+        world.position_update_interval_s =
+            Some(scenario.traffic.continuous.position_update_interval_s);
+    }
+
     // Add robots
     for i in 0..scenario.robots.count {
         let start_node = i % (grid_size * grid_size) as u32;
@@ -855,13 +866,14 @@ fn build_world_from_scenario(
     // Create policies from config (including traffic policy)
     world.policies =
         waremax_sim::create_policies_with_traffic(&scenario.policies, &scenario.traffic);
-    let (alloc, station, batch, prio, traffic) = world.policies.all_names();
+    let (alloc, station, batch, prio, traffic, edge_traffic) = world.policies.all_names();
     println!("Policies:");
     println!("  Task Allocation: {}", alloc);
     println!("  Station Assignment: {}", station);
     println!("  Batching: {}", batch);
     println!("  Priority: {}", prio);
     println!("  Traffic: {}", traffic);
+    println!("  Edge Traffic: {}", edge_traffic);
 
     // Set metrics sample interval from config
     world.metrics_sample_interval_s = scenario.metrics.sample_interval_s;
@@ -956,6 +968,11 @@ fn build_demo_world(seed: u64, num_robots: usize, order_rate: f64) -> waremax_si
     world.router = Router::new(true);
     // Allow 2 robots per edge/node to reduce congestion in demo
     world.traffic = TrafficManager::new(2, 2);
+
+    // v4: Register edge lengths in traffic manager for continuous tracking
+    for (edge_id, edge) in &world.map.edges {
+        world.traffic.register_edge_length(*edge_id, edge.length_m);
+    }
 
     // Add robots
     for i in 0..num_robots {
@@ -1790,16 +1807,23 @@ fn run_analyze(
 // v6: Interactive Web UI
 // =============================================================================
 
-fn run_ui(port: u16, open: bool) {
-    let config = waremax_ui::ServerConfig {
-        port,
-        open_browser: open,
-        ..Default::default()
+fn run_ui(port: u16, _open: bool) {
+    let config = waremax_api::ApiConfig {
+        session_timeout_secs: 30 * 60,
+        max_sessions: 100,
+        cors_origins: vec![],
+        request_id_header: true,
     };
 
     let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
     rt.block_on(async {
-        if let Err(e) = waremax_ui::run_server(config).await {
+        let app = waremax_api::create_router(config);
+        let addr = std::net::SocketAddr::from(([0, 0, 0, 0], port));
+        println!("Waremax API server starting on http://localhost:{}", port);
+        println!("  Press Ctrl+C to stop\n");
+
+        let listener = tokio::net::TcpListener::bind(addr).await.expect("Failed to bind");
+        if let Err(e) = axum::serve(listener, app).await {
             eprintln!("Server error: {}", e);
             std::process::exit(1);
         }

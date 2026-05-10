@@ -1,0 +1,36 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('articles', ({ data }) => !data.draft);
+  return articles.map((article) => ({
+    params: { slug: article.slug },
+    props: { article },
+  }));
+}
+
+const { article } = Astro.props;
+const { Content } = await article.render();
+---
+
+<Layout title={`${article.data.title} - Waremax`} description={article.data.description}>
+  <div class="max-w-3xl mx-auto px-6 py-12">
+    <div class="mb-8">
+      <div class="flex flex-wrap gap-2 mb-4">
+        {article.data.tags.map((tag) => (
+          <span class="text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">{tag}</span>
+        ))}
+      </div>
+      <h1 class="text-4xl font-bold mb-4">{article.data.title}</h1>
+      <p class="text-gray-400 mb-4">{article.data.description}</p>
+      <div class="text-sm text-gray-500">
+        {article.data.pubDate.toLocaleDateString()} &middot; {article.data.author}
+      </div>
+    </div>
+
+    <article class="prose prose-invert prose-lg max-w-none prose-headings:text-gray-100 prose-a:text-indigo-400 hover:prose-a:text-indigo-300">
+      <Content />
+    </article>
+  </div>
+</Layout>

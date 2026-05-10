@@ -139,6 +139,17 @@ pub enum SimEvent {
         resolver_robot: RobotId,
     },
 
+    // === v4: Continuous Position Tracking Events ===
+    /// Robot position update during edge traversal (for continuous traffic policy)
+    RobotPositionUpdate {
+        robot_id: RobotId,
+        edge_id: EdgeId,
+        from_node: NodeId,
+        to_node: NodeId,
+        /// Progress from 0.0 (at from_node) to 1.0 (at to_node)
+        progress: f64,
+    },
+
     // === v3: Robot Failures & Maintenance Events ===
     /// Robot has failed and needs repair
     RobotFailure {
@@ -203,6 +214,8 @@ impl SimEvent {
             // v2: Traffic & Safety events
             SimEvent::DeadlockDetected { .. } => "deadlock_detected",
             SimEvent::DeadlockResolved { .. } => "deadlock_resolved",
+            // v4: Continuous position tracking events
+            SimEvent::RobotPositionUpdate { .. } => "robot_position_update",
             // v3: Robot Failures & Maintenance events
             SimEvent::RobotFailure { .. } => "robot_failure",
             SimEvent::RobotMaintenanceDue { .. } => "robot_maintenance_due",
@@ -230,6 +243,7 @@ impl SimEvent {
             SimEvent::RobotMaintenanceDue { robot_id, .. } => Some(*robot_id),
             SimEvent::MaintenanceStart { robot_id, .. } => Some(*robot_id),
             SimEvent::MaintenanceEnd { robot_id, .. } => Some(*robot_id),
+            SimEvent::RobotPositionUpdate { robot_id, .. } => Some(*robot_id),
             _ => None,
         }
     }

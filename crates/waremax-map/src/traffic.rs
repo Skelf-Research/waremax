@@ -1,6 +1,7 @@
 //! Traffic management for edge and node capacity
 
 use crate::deadlock::{WaitForGraph, WaitingFor};
+use crate::position::ContinuousEdgeState;
 use std::collections::{HashMap, HashSet};
 use waremax_core::{EdgeId, NodeId, RobotId};
 
@@ -16,6 +17,12 @@ pub struct TrafficManager {
     pub wait_graph: WaitForGraph,
     /// v2: Whether deadlock detection is enabled
     pub deadlock_detection_enabled: bool,
+    /// v4: Continuous position tracking per edge (only populated when continuous policy is active)
+    continuous_states: HashMap<EdgeId, Vec<ContinuousEdgeState>>,
+    /// v4: Current travel direction per edge (from, to). None if edge is empty.
+    edge_directions: HashMap<EdgeId, Option<(NodeId, NodeId)>>,
+    /// v4: Edge lengths for progress calculations
+    edge_lengths: HashMap<EdgeId, f64>,
 }
 
 impl TrafficManager {
@@ -29,6 +36,9 @@ impl TrafficManager {
             default_node_capacity,
             wait_graph: WaitForGraph::new(),
             deadlock_detection_enabled: false,
+            continuous_states: HashMap::new(),
+            edge_directions: HashMap::new(),
+            edge_lengths: HashMap::new(),
         }
     }
 
@@ -186,5 +196,83 @@ impl TrafficManager {
     /// Get all robots currently waiting
     pub fn waiting_count(&self) -> usize {
         self.wait_graph.waiting_count()
+    }
+
+    // === v4: Continuous Position Tracking Methods ===
+
+    /// Register edge length for progress calculations.
+    pub fn register_edge_length(&mut self, edge: EdgeId, length_m: f64) {
+        self.edge_lengths.insert(edge, length_m);
+    }
+
+    /// Get the registered length of an edge.
+    pub fn edge_length(&self, edge: EdgeId) -> f64 {
+        self.edge_lengths.get(&edge).copied().unwrap_or(1.0)
+    }
+
+    /// Get the current travel direction of an edge, if any.
+    pub fn edge_direction(&self, edge: EdgeId) -> Option<Option<(NodeId, NodeId)>> {
+        self.edge_directions.get(&edge).copied()
+    }
+
+    /// Set the travel direction for an edge.
+    pub fn set_edge_direction(&mut self, edge: EdgeId, direction: Option<(NodeId, NodeId)>) {
+        self.edge_directions.insert(edge, direction);
+    }
+
+    /// Get the continuous edge states for a given edge.
+    pub fn continuous_states(&self, edge: EdgeId) -> Option<&Vec<ContinuousEdgeState>> {
+        self.continuous_states.get(&edge)
+    }
+
+    /// Get a mutable reference to continuous edge states for a given edge.
+    pub fn continuous_states_mut(&mut self, edge: EdgeId) -> &mut Vec<ContinuousEdgeState> {
+        self.continuous_states.entry(edge).or_default()
+    }
+
+    /// Add a continuous edge state for a robot entering an edge.
+    pub fn add_continuous_state(&mut self, edge: EdgeId, state: ContinuousEdgeState) {
+        self.continuous_states.entry(edge).or_default().push(state);
+    }
+
+    /// Update the progress of a robot on an edge.
+    pub fn update_continuous_progress(
+        &mut self,
+        edge: EdgeId,
+        robot: RobotId,
+        progress: f64,
+    ) {
+        if let Some(states) = self.continuous_states.get_mut(&edge) {
+            for state in states.iter_mut() {
+                if state.robot_id == robot {
+                    state.progress = progress.clamp(0.0, 1.0);
+                    break;
+                }
+            }
+        }
+    }
+
+    /// Remove a robot's continuous state from an edge.
+    pub fn remove_continuous_state(&mut self,
+        edge: EdgeId,
+        robot: RobotId,
+    ) {
+        if let Some(states) = self.continuous_states.get_mut(&edge) {
+            states.retain(|s| s.robot_id != robot);
+            if states.is_empty() {
+                self.continuous_states.remove(&edge);
+                self.edge_directions.remove(&edge);
+            }
+        }
+    }
+
+    /// Count occupants on an edge (backward-compatible alias).
+    pub fn edge_occupancy_count(&self, edge: EdgeId) -> usize {
+        self.get_edge_occupancy(edge)
+    }
+
+    /// Get the capacity of an edge.
+    pub fn edge_capacity(&self, edge: EdgeId) -> u32 {
+        self.edge_capacity.get(&edge).copied().unwrap_or(self.default_edge_capacity)
     }
 }

@@ -407,6 +407,12 @@ pub struct TrafficConfig {
     /// v2: How far ahead to reserve path segments (seconds)
     #[serde(default = "default_reservation_lookahead")]
     pub reservation_lookahead_s: f64,
+    /// v4: Edge traffic control policy (coarse, continuous)
+    #[serde(default = "default_edge_traffic_policy")]
+    pub edge_traffic_policy: String,
+    /// v4: Continuous traffic policy settings
+    #[serde(default)]
+    pub continuous: ContinuousTrafficConfig,
 }
 
 fn default_traffic_policy() -> String {
@@ -433,6 +439,35 @@ fn default_reservation_lookahead() -> f64 {
     30.0 // 30 seconds lookahead by default
 }
 
+fn default_edge_traffic_policy() -> String {
+    "coarse".to_string()
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ContinuousTrafficConfig {
+    #[serde(default = "default_safety_distance")]
+    pub safety_distance_m: f64,
+    #[serde(default = "default_position_interval")]
+    pub position_update_interval_s: f64,
+}
+
+fn default_safety_distance() -> f64 {
+    1.0
+}
+
+fn default_position_interval() -> f64 {
+    0.1
+}
+
+impl Default for ContinuousTrafficConfig {
+    fn default() -> Self {
+        Self {
+            safety_distance_m: default_safety_distance(),
+            position_update_interval_s: default_position_interval(),
+        }
+    }
+}
+
 impl Default for TrafficConfig {
     fn default() -> Self {
         Self {
@@ -446,6 +481,8 @@ impl Default for TrafficConfig {
             deadlock_check_interval_s: 0.0,
             reservation_enabled: false,
             reservation_lookahead_s: default_reservation_lookahead(),
+            edge_traffic_policy: default_edge_traffic_policy(),
+            continuous: ContinuousTrafficConfig::default(),
         }
     }
 }

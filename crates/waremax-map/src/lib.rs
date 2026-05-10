@@ -2,12 +2,14 @@
 
 pub mod deadlock;
 pub mod graph;
+pub mod position;
 pub mod reservation;
 pub mod routing;
 pub mod traffic;
 
 pub use graph::{Edge, EdgeDirection, Node, NodeType, WarehouseMap};
 pub use routing::{Route, RouteCache, Router};
+pub use position::{ContinuousEdgeState, RobotPosition};
 pub use traffic::TrafficManager;
 
 // v2: Deadlock detection

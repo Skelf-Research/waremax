@@ -1,0 +1,15 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SimulationDashboard from '../islands/SimulationDashboard.vue';
+---
+
+<Layout title="Simulation - Waremax">
+  <div class="h-full overflow-hidden">
+    <SimulationDashboard client:only="vue">
+      <div slot="fallback" class="h-full flex flex-col items-center justify-center bg-warehouse-bg">
+        <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p class="text-gray-400 text-sm">Loading simulation engine...</p>
+      </div>
+    </SimulationDashboard>
+  </div>
+</Layout>
