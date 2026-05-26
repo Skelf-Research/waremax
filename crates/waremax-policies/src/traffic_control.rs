@@ -320,7 +320,7 @@ mod tests {
     #[test]
     fn test_coarse_policy_allows_entry() {
         let mut traffic = TrafficManager::new(1, 1);
-        let policy = CoarseTrafficPolicy::new();
+        let mut policy = CoarseTrafficPolicy::new();
 
         assert!(policy.can_enter_edge(&traffic, EdgeId(1), RobotId(1), NodeId(0), NodeId(1)));
 
@@ -333,7 +333,7 @@ mod tests {
     #[test]
     fn test_continuous_direction_locking() {
         let mut traffic = TrafficManager::new(2, 2);
-        let policy = ContinuousTrafficPolicy::default_config();
+        let mut policy = ContinuousTrafficPolicy::default_config();
 
         // Robot 1 enters from 0 -> 1
         assert!(policy.can_enter_edge(&traffic, EdgeId(1), RobotId(1), NodeId(0), NodeId(1)));
@@ -351,7 +351,7 @@ mod tests {
         let mut traffic = TrafficManager::new(2, 2);
         traffic.register_edge_length(EdgeId(1), 10.0);
 
-        let policy = ContinuousTrafficPolicy::new(3.0, 0.1);
+        let mut policy = ContinuousTrafficPolicy::new(3.0, 0.1);
 
         // Robot 1 enters
         policy.on_enter_edge(&mut traffic, EdgeId(1), RobotId(1), NodeId(0), NodeId(1));

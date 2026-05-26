@@ -31,7 +31,10 @@ impl StationAssignmentPolicy for LeastQueuePolicy {
             .values()
             .filter(|s| s.station_type == self.station_type)
             .filter(|s| s.can_accept())
-            .min_by_key(|s| s.queue_length())
+            // Tie-break by station id: `ctx.stations` is a HashMap with
+            // randomized iteration order, so without a stable secondary key the
+            // chosen station (and thus routing/timing) would vary per run.
+            .min_by_key(|s| (s.queue_length(), s.id.0))
             .map(|s| s.id)
     }
 
@@ -75,6 +78,7 @@ impl StationAssignmentPolicy for NearestStationPolicy {
                 dist_a
                     .partial_cmp(&dist_b)
                     .unwrap_or(std::cmp::Ordering::Equal)
+                    .then_with(|| a.id.0.cmp(&b.id.0))
             })
             .map(|s| s.id)
     }
@@ -136,6 +140,7 @@ impl StationAssignmentPolicy for FastestServicePolicy {
                 total_a
                     .partial_cmp(&total_b)
                     .unwrap_or(std::cmp::Ordering::Equal)
+                    .then_with(|| a.id.0.cmp(&b.id.0))
             })
             .map(|s| s.id)
     }
@@ -204,13 +209,13 @@ impl StationAssignmentPolicy for DueTimePriorityStationPolicy {
         }
 
         if is_urgent {
-            // Urgent: assign to station with shortest queue
+            // Urgent: assign to station with shortest queue (tie-break by id)
             matching_stations
                 .into_iter()
-                .min_by_key(|s| s.queue_length())
+                .min_by_key(|s| (s.queue_length(), s.id.0))
                 .map(|s| s.id)
         } else {
-            // Non-urgent: assign to nearest station
+            // Non-urgent: assign to nearest station (tie-break by id)
             matching_stations
                 .into_iter()
                 .min_by(|a, b| {
@@ -219,6 +224,7 @@ impl StationAssignmentPolicy for DueTimePriorityStationPolicy {
                     dist_a
                         .partial_cmp(&dist_b)
                         .unwrap_or(std::cmp::Ordering::Equal)
+                        .then_with(|| a.id.0.cmp(&b.id.0))
                 })
                 .map(|s| s.id)
         }
@@ -252,6 +258,7 @@ mod tests {
             tasks,
             stations,
             orders,
+            attribution: None,
         }
     }
 

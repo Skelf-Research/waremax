@@ -1,6 +1,7 @@
 //! Policy trait definitions
 
 use std::collections::HashMap;
+use waremax_analysis::AttributionCollector;
 use waremax_core::{RobotId, SimTime, StationId, TaskId};
 use waremax_entities::{Order, Robot, Station, Task};
 use waremax_map::WarehouseMap;
@@ -13,6 +14,10 @@ pub struct PolicyContext<'a> {
     pub tasks: &'a HashMap<TaskId, Task>,
     pub stations: &'a HashMap<StationId, Station>,
     pub orders: &'a HashMap<waremax_core::OrderId, Order>,
+    /// Delay-attribution data, present only when attribution tracking is
+    /// enabled (used by the RL attribution-shaped reward). Heuristic policies
+    /// ignore this field.
+    pub attribution: Option<&'a AttributionCollector>,
 }
 
 /// Task allocation policy: which robot should handle a task

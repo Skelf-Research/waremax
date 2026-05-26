@@ -442,6 +442,35 @@ impl EventHandler {
             },
         );
 
+        // v6: Smart pickup-bin selection — re-pick the in-stock replica bin that
+        // minimizes robot->bin + bin->station travel for the assigned robot.
+        if world.smart_bin_selection {
+            let info = world.get_task(task_id).and_then(|t| {
+                world
+                    .get_robot(robot_id)
+                    .map(|r| (t.sku_id, t.quantity, t.destination_station, r.current_node))
+            });
+            if let Some((sku_id, qty, station_id, robot_node)) = info {
+                if let Some(station_node) = world.get_station(station_id).map(|s| s.node) {
+                    let bins = world.find_sku_bins(sku_id, qty);
+                    let best = bins.into_iter().min_by(|a, b| {
+                        let ca = world.map.euclidean_distance(robot_node, a.1)
+                            + world.map.euclidean_distance(a.1, station_node);
+                        let cb = world.map.euclidean_distance(robot_node, b.1)
+                            + world.map.euclidean_distance(b.1, station_node);
+                        ca.partial_cmp(&cb)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                            .then(a.1 .0.cmp(&b.1 .0))
+                    });
+                    if let Some((bin_addr, bin_node)) = best {
+                        if let Some(task) = world.get_task_mut(task_id) {
+                            task.source = waremax_entities::BinLocation::new(bin_addr, bin_node);
+                        }
+                    }
+                }
+            }
+        }
+
         // Get task and robot info needed for routing
         let route_info = {
             let task = world.get_task(task_id);
@@ -454,7 +483,18 @@ impl EventHandler {
 
         // Start moving robot to pickup location
         if let Some((pickup_node, robot_node, robot_speed)) = route_info {
-            if let Some(route) = world.router.find_route(&world.map, robot_node, pickup_node) {
+            // v6: congestion-aware routing when enabled (occupancy-weighted path).
+            let route_opt = if world.congestion_routing {
+                world.router.find_route_with_traffic(
+                    &world.map,
+                    robot_node,
+                    pickup_node,
+                    &world.traffic,
+                )
+            } else {
+                world.router.find_route(&world.map, robot_node, pickup_node)
+            };
+            if let Some(route) = route_opt {
                 // v2: Reserve path segments if reservation system is enabled
                 if world.reservation_manager.enabled {
                     let mut time_offset = current_time;
@@ -542,6 +582,19 @@ impl EventHandler {
             world
                 .time_series
                 .record_edge_wait(edge_id, SimTime::from_seconds(0.5));
+
+            // v6: Attribute this edge-congestion wait to the robot's current
+            // task, so delay attribution (and the RL attribution-shaped reward)
+            // actually captures congestion rather than misattributing it to travel.
+            if world.attribution_collector.is_enabled() {
+                if let Some(task_id) = world.get_robot(robot_id).and_then(|r| r.current_task) {
+                    world.attribution_collector.record_time(
+                        task_id,
+                        DelayCategory::CongestionWait,
+                        0.5,
+                    );
+                }
+            }
 
             // v2: Record wait in wait-for graph for deadlock detection
             world.traffic.record_edge_wait(robot_id, edge_id);
@@ -723,11 +776,18 @@ impl EventHandler {
                         if let (Some(station_node), Some(robot_current)) =
                             (station_node, robot_current)
                         {
-                            if let Some(route) =
-                                world
-                                    .router
-                                    .find_route(&world.map, robot_current, station_node)
-                            {
+                            // v6: congestion-aware routing when enabled.
+                            let route_opt = if world.congestion_routing {
+                                world.router.find_route_with_traffic(
+                                    &world.map,
+                                    robot_current,
+                                    station_node,
+                                    &world.traffic,
+                                )
+                            } else {
+                                world.router.find_route(&world.map, robot_current, station_node)
+                            };
+                            if let Some(route) = route_opt {
                                 if let Some(robot) = world.get_robot_mut(robot_id) {
                                     robot.set_path(route.path);
                                 }

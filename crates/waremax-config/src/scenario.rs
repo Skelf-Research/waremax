@@ -267,6 +267,16 @@ pub struct PolicyConfig {
     pub batching: BatchingConfig,
     #[serde(default)]
     pub priority: PriorityConfig,
+    /// v6: When true, the pickup bin for a SKU is re-selected per assignment to
+    /// minimize robot->bin + bin->station travel (vs. taking the first in-stock
+    /// replica). A spatial lever heuristics otherwise leave unused.
+    #[serde(default)]
+    pub smart_bins: bool,
+    /// v6: Number of distinct SKUs to stock (default 100). Fewer SKUs over the
+    /// same bins => more spread replicas per SKU => the pickup-bin choice has
+    /// real leverage. `None` keeps the default.
+    #[serde(default)]
+    pub inventory_skus: Option<u32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -386,6 +396,11 @@ pub struct TrafficConfig {
     pub edge_capacity_default: u32,
     #[serde(default = "default_capacity")]
     pub node_capacity_default: u32,
+    /// v6: Congestion-aware routing weight. 0 = shortest-path routing; when > 0,
+    /// task routing uses occupancy-weighted Dijkstra (edge cost *= 1 + w*occupancy)
+    /// to steer robots around congested edges.
+    #[serde(default)]
+    pub congestion_weight: f64,
     /// Wait threshold before rerouting in seconds (v1)
     #[serde(default = "default_wait_threshold")]
     pub wait_threshold_s: f64,
@@ -474,6 +489,7 @@ impl Default for TrafficConfig {
             policy: default_traffic_policy(),
             edge_capacity_default: default_capacity(),
             node_capacity_default: default_capacity(),
+            congestion_weight: 0.0,
             wait_threshold_s: default_wait_threshold(),
             max_reroute_attempts: default_max_reroutes(),
             deadlock_detection: false,

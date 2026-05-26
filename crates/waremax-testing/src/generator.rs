@@ -488,6 +488,8 @@ impl ScenarioBuilder {
                     putaway_weight: 1,
                     replen_weight: 1,
                 },
+                smart_bins: false,
+                inventory_skus: None,
             },
             traffic: TrafficConfig {
                 policy: self.traffic_policy,

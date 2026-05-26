@@ -1,0 +1,25 @@
+[package]
+name = "waremax-gym"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "waremax_gym"
+# cdylib for the Python extension (built by maturin); rlib so `cargo check`
+# still works as part of the workspace.
+crate-type = ["cdylib", "rlib"]
+# No Rust tests here, and the `extension-module` feature leaves Python symbols
+# unresolved (fine for a .so, fatal when linking a test executable). Disabling
+# the test/doc harness keeps `cargo test --workspace` green.
+test = false
+doctest = false
+
+[dependencies]
+waremax-rl = { workspace = true }
+waremax-config = { workspace = true }
+waremax-testing = { workspace = true }
+waremax-metrics = { workspace = true }
+serde_json = { workspace = true }
+pyo3 = { workspace = true, features = ["extension-module"] }

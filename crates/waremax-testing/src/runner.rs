@@ -231,6 +231,9 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
 
     world.map = map;
     world.router = Router::new(true);
+    // v6: congestion-aware routing (occupancy-weighted Dijkstra) when configured.
+    world.router.set_congestion_weight(scenario.traffic.congestion_weight);
+    world.congestion_routing = scenario.traffic.congestion_weight > 0.0;
     world.traffic = TrafficManager::new(
         scenario.traffic.node_capacity_default,
         scenario.traffic.edge_capacity_default,
@@ -386,13 +389,14 @@ pub fn build_world_from_config(scenario: &ScenarioConfig) -> World {
     // Set up policies
     world.policies =
         waremax_sim::create_policies_with_traffic(&scenario.policies, &scenario.traffic);
+    world.smart_bin_selection = scenario.policies.smart_bins;
 
     // Set up distributions
     world.distributions = waremax_sim::create_distributions(&scenario.orders);
 
-    // Initialize demo inventory based on SKU count from orders config
-    // Use the SKU count from zipf distribution or default to 100
-    world.init_demo_inventory(100);
+    // Initialize demo inventory. Fewer SKUs over the same bins => more spread
+    // replicas per SKU, giving the pickup-bin choice real spatial leverage.
+    world.init_demo_inventory(scenario.policies.inventory_skus.unwrap_or(100));
 
     // Set metrics sample interval
     world.metrics_sample_interval_s = scenario.metrics.sample_interval_s;

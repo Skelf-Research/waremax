@@ -1,0 +1,21 @@
+[package]
+name = "waremax-rl"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+waremax-core = { workspace = true }
+waremax-entities = { workspace = true }
+waremax-map = { workspace = true }
+waremax-policies = { workspace = true }
+waremax-config = { workspace = true }
+waremax-sim = { workspace = true }
+waremax-testing = { workspace = true }
+waremax-metrics = { workspace = true }
+waremax-analysis = { workspace = true }
+crossbeam-channel = { workspace = true }
+
+[dev-dependencies]
+waremax-testing = { workspace = true }

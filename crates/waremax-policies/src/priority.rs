@@ -218,6 +218,7 @@ mod tests {
             tasks,
             stations,
             orders,
+            attribution: None,
         }
     }
 

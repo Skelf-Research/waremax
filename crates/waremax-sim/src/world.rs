@@ -132,6 +132,13 @@ pub struct World {
 
     /// v4: Position update interval for continuous traffic policy (None if coarse)
     pub position_update_interval_s: Option<f64>,
+
+    /// v6: When true, task routing uses occupancy-weighted (congestion-aware)
+    /// path finding instead of plain shortest path.
+    pub congestion_routing: bool,
+
+    /// v6: When true, re-select the pickup bin per assignment to minimize travel.
+    pub smart_bin_selection: bool,
 }
 
 impl World {
@@ -165,6 +172,8 @@ impl World {
             trace_collector: EventTraceCollector::default(),
             attribution_collector: AttributionCollector::new(),
             position_update_interval_s: None,
+            congestion_routing: false,
+            smart_bin_selection: false,
         }
     }
 
@@ -194,10 +203,17 @@ impl World {
                 continue;
             }
 
-            // Calculate distance
+            // Calculate distance. Tie-break by station id so the choice is
+            // independent of HashMap iteration order (determinism).
             if let Some(route) = self.router.find_route(&self.map, from_node, station.node) {
                 let dist = route.total_distance;
-                if best.is_none() || dist < best.unwrap().1 {
+                let better = match best {
+                    None => true,
+                    Some((best_id, best_dist)) => {
+                        dist < best_dist || (dist == best_dist && id.0 < best_id.0)
+                    }
+                };
+                if better {
                     best = Some((*id, dist));
                 }
             }
@@ -239,10 +255,17 @@ impl World {
                 continue;
             }
 
-            // Calculate distance
+            // Calculate distance. Tie-break by station id so the choice is
+            // independent of HashMap iteration order (determinism).
             if let Some(route) = self.router.find_route(&self.map, from_node, station.node) {
                 let dist = route.total_distance;
-                if best.is_none() || dist < best.unwrap().1 {
+                let better = match best {
+                    None => true,
+                    Some((best_id, best_dist)) => {
+                        dist < best_dist || (dist == best_dist && id.0 < best_id.0)
+                    }
+                };
+                if better {
                     best = Some((*id, dist));
                 }
             }
@@ -265,6 +288,11 @@ impl World {
             tasks: &self.tasks,
             stations: &self.stations,
             orders: &self.orders,
+            attribution: if self.attribution_collector.is_enabled() {
+                Some(&self.attribution_collector)
+            } else {
+                None
+            },
         }
     }
 
@@ -327,24 +355,34 @@ impl World {
             self.skus.add(sku);
         }
 
-        // Find rack/storage nodes in the map and create racks
-        let rack_nodes: Vec<(NodeId, String)> = self
+        // Find rack/storage nodes in the map and create racks.
+        // NOTE: `map.nodes` is a HashMap whose iteration order is randomized per
+        // process. We sort the selected nodes by NodeId so inventory placement
+        // (and therefore which bin a SKU resolves to via `find_sku_with_stock`)
+        // is reproducible across runs with the same seed. Without this, the same
+        // seed yields different bin assignments, breaking simulation determinism.
+        let mut rack_nodes: Vec<(NodeId, String)> = self
             .map
             .nodes
             .iter()
             .filter(|(_, node)| matches!(node.node_type, NodeType::Rack | NodeType::Staging))
             .map(|(id, node)| (*id, node.string_id.clone()))
             .collect();
+        rack_nodes.sort_by_key(|(id, _)| id.0);
 
-        // If no rack nodes found, use interior aisle nodes as storage
+        // If no rack nodes found, use interior aisle nodes as storage (sorted
+        // before truncation so the chosen subset is also deterministic).
         let storage_nodes: Vec<(NodeId, String)> = if rack_nodes.is_empty() {
-            self.map
+            let mut aisle_nodes: Vec<(NodeId, String)> = self
+                .map
                 .nodes
                 .iter()
                 .filter(|(_, node)| matches!(node.node_type, NodeType::Aisle))
-                .take(10) // Use up to 10 aisle nodes as storage
                 .map(|(id, node)| (*id, node.string_id.clone()))
-                .collect()
+                .collect();
+            aisle_nodes.sort_by_key(|(id, _)| id.0);
+            aisle_nodes.truncate(10); // Use up to 10 aisle nodes as storage
+            aisle_nodes
         } else {
             rack_nodes
         };
@@ -389,5 +427,19 @@ impl World {
             }
         }
         None
+    }
+
+    /// All in-stock replica bins for a SKU, with their access nodes. Used by
+    /// smart bin selection to choose among replicas.
+    pub fn find_sku_bins(&self, sku_id: SkuId, quantity: u32) -> Vec<(BinAddress, NodeId)> {
+        self.inventory
+            .find_sku(sku_id)
+            .filter(|addr| self.inventory.get_quantity(addr).is_some_and(|q| q >= quantity))
+            .filter_map(|addr| {
+                self.racks
+                    .get(&addr.rack_id)
+                    .map(|rack| (addr.clone(), rack.access_node))
+            })
+            .collect()
     }
 }
