@@ -24,6 +24,10 @@ pub enum RewardMode {
     Sparse,
     Dense,
     Attribution,
+    /// Ablation: attribution that also penalizes allocation-uncontrollable delay
+    /// (congestion + station queue). Used to demonstrate the controllability
+    /// principle (it should underperform `Attribution`).
+    AttributionFull,
     /// Per-decision *routed* credit: each assignment's controllable cost
     /// (estimated travel-to-pickup + the chosen robot's backlog) is charged to
     /// the exact decision that made it, rather than smeared across completions.
@@ -36,6 +40,7 @@ impl RewardMode {
             "sparse" => Some(Self::Sparse),
             "dense" => Some(Self::Dense),
             "attribution" => Some(Self::Attribution),
+            "attribution_full" => Some(Self::AttributionFull),
             "routed" => Some(Self::Routed),
             _ => None,
         }
@@ -43,7 +48,7 @@ impl RewardMode {
 
     /// Whether this mode needs the attribution collector enabled.
     pub fn needs_attribution(self) -> bool {
-        matches!(self, Self::Attribution)
+        matches!(self, Self::Attribution | Self::AttributionFull)
     }
 }
 
@@ -99,10 +104,13 @@ pub struct RewardSnapshot {
     pub late: u32,
     pub cum_lateness_s: f64,
     pub pending: usize,
-    /// Cumulative attributed "waste" delay over completed tasks (seconds).
+    /// Cumulative attributed CONTROLLABLE waste (assignment wait), seconds.
     pub attr_waste_s: f64,
     /// Cumulative attributed travel-to-pickup over completed tasks (seconds).
     pub attr_travel_s: f64,
+    /// Cumulative attributed UNCONTROLLABLE delay (congestion + station queue),
+    /// seconds. Used only by the AttributionFull ablation.
+    pub attr_uncontrollable_s: f64,
 }
 
 /// Compute a snapshot from the current order/task maps and (optional) attribution.
@@ -136,22 +144,27 @@ pub fn snapshot_from(
     // deliberately EXCLUDE congestion and station-queue: under allocation-only
     // control the agent cannot influence them, and penalizing such uncontrollable
     // delay injects reward variance that degrades learning (shown empirically).
-    let (attr_waste_s, attr_travel_s) = match attribution {
+    let (attr_waste_s, attr_travel_s, attr_uncontrollable_s) = match attribution {
         Some(ac) => {
             let mut waste = 0.0;
             let mut travel = 0.0;
+            let mut uncontrollable = 0.0;
             for attr in ac.completed_attributions() {
                 for (cat, secs) in &attr.time_breakdown {
                     match cat {
                         DelayCategory::TravelToPickup => travel += *secs,
                         DelayCategory::RobotAssignment => waste += *secs,
+                        // Allocation-uncontrollable delay (for the AttributionFull ablation).
+                        DelayCategory::CongestionWait | DelayCategory::StationQueue => {
+                            uncontrollable += *secs
+                        }
                         _ => {}
                     }
                 }
             }
-            (waste, travel)
+            (waste, travel, uncontrollable)
         }
-        None => (0.0, 0.0),
+        None => (0.0, 0.0, 0.0),
     };
 
     RewardSnapshot {
@@ -161,6 +174,7 @@ pub fn snapshot_from(
         pending,
         attr_waste_s,
         attr_travel_s,
+        attr_uncontrollable_s,
     }
 }
 
@@ -171,6 +185,7 @@ pub fn delta(prev: &RewardSnapshot, cur: &RewardSnapshot, cfg: &RewardConfig) ->
     let d_lateness = cur.cum_lateness_s - prev.cum_lateness_s;
     let d_waste = cur.attr_waste_s - prev.attr_waste_s;
     let d_travel = cur.attr_travel_s - prev.attr_travel_s;
+    let d_uncontrollable = cur.attr_uncontrollable_s - prev.attr_uncontrollable_s;
 
     let r = match cfg.mode {
         RewardMode::Sparse => cfg.w_throughput * d_completed - cfg.w_late * d_late,
@@ -183,6 +198,13 @@ pub fn delta(prev: &RewardSnapshot, cur: &RewardSnapshot, cfg: &RewardConfig) ->
         RewardMode::Attribution => {
             cfg.w_throughput * d_completed
                 - cfg.w_waste * (d_waste / 60.0)
+                - cfg.w_travel * (d_travel / 60.0)
+        }
+        // Ablation: attribution that ALSO penalizes uncontrollable delay
+        // (congestion + station queue). Used to show the controllability effect.
+        RewardMode::AttributionFull => {
+            cfg.w_throughput * d_completed
+                - cfg.w_waste * ((d_waste + d_uncontrollable) / 60.0)
                 - cfg.w_travel * (d_travel / 60.0)
         }
         // Routed: the global objective only; the per-decision controllable cost
