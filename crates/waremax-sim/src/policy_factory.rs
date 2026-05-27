@@ -3,11 +3,11 @@
 use crate::world::PolicySet;
 use waremax_config::{PolicyConfig, TrafficConfig};
 use waremax_policies::{
-    AdaptiveTrafficPolicy, BatchingPolicy, CoarseTrafficPolicy, ContinuousTrafficPolicy,
-    DueTimePolicy, EdgeTrafficPolicy, FifoPolicy, LeastBusyPolicy, LeastQueuePolicy,
-    NearestRobotPolicy, NearestStationPolicy, NoBatchingPolicy, PriorityPolicy,
+    AdaptiveTrafficPolicy, AuctionPolicy, BatchingPolicy, CoarseTrafficPolicy,
+    ContinuousTrafficPolicy, DueTimePolicy, EdgeTrafficPolicy, FifoPolicy, LeastBusyPolicy,
+    LeastQueuePolicy, NearestRobotPolicy, NearestStationPolicy, NoBatchingPolicy, PriorityPolicy,
     RerouteOnWaitPolicy, RoundRobinPolicy, StationAssignmentPolicy, StrictPriorityPolicy,
-    TaskAllocationPolicy, TrafficPolicy, WaitAtNodePolicy, ZoneBatchingPolicy,
+    TaskAllocationPolicy, TrafficPolicy, WaitAtNodePolicy, WorkloadBalancedPolicy, ZoneBatchingPolicy,
 };
 
 /// Create a PolicySet from scenario configuration
@@ -80,6 +80,15 @@ fn create_task_allocation(config: &PolicyConfig) -> Box<dyn TaskAllocationPolicy
         "nearest_robot" => Box::new(NearestRobotPolicy::new()),
         "round_robin" => Box::new(RoundRobinPolicy::new()),
         "least_busy" => Box::new(LeastBusyPolicy::new()),
+        "auction" => Box::new(AuctionPolicy::new(
+            config.task_allocation.travel_weight,
+            config.task_allocation.queue_weight,
+        )),
+        "workload_balanced" => Box::new(WorkloadBalancedPolicy::default()),
+        // Placeholder for the RL control seam: waremax-rl's `RlEnv` overwrites
+        // `world.policies.task_allocation` with an `RlPolicy` after construction.
+        // Recognized here so configs naming it don't fall through to the warning.
+        "rl_agent" => Box::new(NearestRobotPolicy::new()),
         unknown => {
             eprintln!(
                 "Warning: Unknown task allocation policy '{}', using nearest_robot",

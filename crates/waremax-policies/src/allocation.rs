@@ -35,8 +35,13 @@ impl TaskAllocationPolicy for NearestRobotPolicy {
             })
             .collect();
 
-        // Sort by distance (nearest first)
-        candidates.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+        // Sort by distance (nearest first), tie-broken by robot id so the
+        // choice is independent of HashMap iteration order.
+        candidates.sort_by(|a, b| {
+            a.1.partial_cmp(&b.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.0 .0.cmp(&b.0 .0))
+        });
 
         candidates.first().map(|(id, _)| *id)
     }
@@ -106,7 +111,7 @@ impl TaskAllocationPolicy for LeastBusyPolicy {
         ctx.robots
             .values()
             .filter(|r| r.is_available())
-            .min_by_key(|r| r.task_queue.len())
+            .min_by_key(|r| (r.task_queue.len(), r.id.0))
             .map(|r| r.id)
     }
 
@@ -162,8 +167,12 @@ impl TaskAllocationPolicy for AuctionPolicy {
             })
             .collect();
 
-        // Sort by bid (lowest first)
-        candidates.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+        // Sort by bid (lowest first), tie-broken by robot id for determinism.
+        candidates.sort_by(|a, b| {
+            a.1.partial_cmp(&b.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.0 .0.cmp(&b.0 .0))
+        });
 
         candidates.first().map(|(id, _)| *id)
     }
@@ -238,6 +247,7 @@ impl TaskAllocationPolicy for WorkloadBalancedPolicy {
             a_impact
                 .partial_cmp(&b_impact)
                 .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.0 .0.cmp(&b.0 .0))
         });
 
         candidates.first().map(|(id, _, _)| *id)
@@ -271,6 +281,7 @@ mod tests {
             tasks,
             stations,
             orders,
+            attribution: None,
         }
     }
 

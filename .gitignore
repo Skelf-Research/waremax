@@ -6,6 +6,11 @@ target/
 # Node.js
 node_modules/
 
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+
 # Build artifacts
 dist/
 build/

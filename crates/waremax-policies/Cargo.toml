@@ -12,5 +12,6 @@ waremax-map = { workspace = true }
 waremax-entities = { workspace = true }
 waremax-statemachine = { workspace = true }
 waremax-storage = { workspace = true }
+waremax-analysis = { workspace = true }
 
 [dev-dependencies]

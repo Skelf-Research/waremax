@@ -1,0 +1,17 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "waremax-gym"
+version = "0.1.0"
+description = "Gymnasium environment over the waremax warehouse-robotics simulator"
+requires-python = ">=3.10"
+dependencies = ["numpy", "gymnasium"]
+
+[tool.maturin]
+# The compiled extension module is `waremax_gym` (matches the #[pymodule] fn).
+# Pure-Python helpers (the gymnasium wrapper, training, baseline) live in
+# `python/` and are run directly rather than packaged, to avoid a name clash
+# with the compiled module.
+features = ["pyo3/extension-module"]

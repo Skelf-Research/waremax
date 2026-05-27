@@ -10,6 +10,8 @@ members = [
     "crates/waremax-metrics",
     "crates/waremax-sim",
     "crates/waremax-testing",
+    "crates/waremax-rl",
+    "crates/waremax-gym",
     "crates/waremax-analysis",
     "crates/waremax-api",
     "crates/waremax-api-server",
@@ -47,6 +49,12 @@ mimalloc = "0.1"
 # CLI
 clap = { version = "4.0", features = ["derive"] }
 
+# Channels (RL control seam)
+crossbeam-channel = "0.5"
+
+# Python bindings (RL gym)
+pyo3 = { version = "0.22" }
+
 # Internal crates
 waremax-core = { version = "0.1.0", path = "crates/waremax-core" }
 waremax-map = { version = "0.1.0", path = "crates/waremax-map" }
@@ -57,6 +65,8 @@ waremax-config = { version = "0.1.0", path = "crates/waremax-config" }
 waremax-metrics = { version = "0.1.0", path = "crates/waremax-metrics" }
 waremax-sim = { version = "0.1.0", path = "crates/waremax-sim" }
 waremax-testing = { version = "0.1.0", path = "crates/waremax-testing" }
+waremax-rl = { version = "0.1.0", path = "crates/waremax-rl" }
+waremax-gym = { version = "0.1.0", path = "crates/waremax-gym" }
 waremax-analysis = { version = "0.1.0", path = "crates/waremax-analysis" }
 waremax-api = { version = "0.1.0", path = "crates/waremax-api" }
 waremax-api-server = { version = "0.1.0", path = "crates/waremax-api-server" }

@@ -1,0 +1,9 @@
+# Python deps for the waremax-gym RL stack.
+# Install into a venv; for CPU-only torch use the PyTorch CPU index:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+maturin>=1.7,<2.0
+numpy
+gymnasium>=1.0
+torch
+stable-baselines3>=2.3
+sb3-contrib>=2.3
