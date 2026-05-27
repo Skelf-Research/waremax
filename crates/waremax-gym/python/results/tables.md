@@ -58,8 +58,8 @@ nearest_robot (n=8)             59.8+-15.8       230.3+-78.8     135.0+-31.5
 least_busy (n=8)                 40.8+-8.8       334.2+-57.8     113.0+-14.3
 round_robin (n=8)               66.5+-20.4      211.2+-130.7     143.0+-37.1
 auction (n=8)                   59.8+-15.8       230.3+-78.8     135.0+-31.5
-ppo/attribution/candidate (n=3)      57.5+-18.9      263.4+-100.9     129.3+-23.2
-ppo/attribution_full/candidate (n=3)      54.7+-15.2       263.7+-88.7     122.3+-21.4
+ppo/attribution/candidate (n=8)       56.0+-5.6       266.1+-29.5      129.4+-7.7
+ppo/attribution_full/candidate (n=8)       51.6+-4.5       282.3+-22.5      120.8+-5.4
 ppo/dense/candidate (n=3)       48.3+-23.7       307.9+-98.9     119.2+-22.1
 ppo/routed/candidate (n=3)      58.5+-11.4       233.4+-58.9     139.7+-26.2
 ```

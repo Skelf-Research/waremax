@@ -30,7 +30,7 @@ congested,nearest_robot,8,59.84,15.79,230.34,78.81,135.0,31.52
 congested,least_busy,8,40.76,8.75,334.18,57.84,113.0,14.33
 congested,round_robin,8,66.47,20.4,211.19,130.75,143.0,37.12
 congested,auction,8,59.84,15.79,230.34,78.81,135.0,31.52
-congested,ppo/attribution/candidate,3,57.54,18.85,263.38,100.95,129.33,23.23
-congested,ppo/attribution_full/candidate,3,54.69,15.22,263.66,88.69,122.33,21.4
+congested,ppo/attribution/candidate,8,56.0,5.64,266.06,29.5,129.44,7.72
+congested,ppo/attribution_full/candidate,8,51.59,4.47,282.28,22.54,120.75,5.41
 congested,ppo/dense/candidate,3,48.32,23.65,307.86,98.86,119.17,22.08
 congested,ppo/routed/candidate,3,58.47,11.4,233.42,58.9,139.67,26.17

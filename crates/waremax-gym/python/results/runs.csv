@@ -72,3 +72,13 @@ congested,standard,15.0,4.0,ppo,attribution_full,candidate,2,40000,8,54.8363,264
 congested,standard,15.0,4.0,ppo,routed,candidate,0,40000,8,63.0092,214.3219,148.5,23.3163,134.0342,34.6085
 congested,standard,15.0,4.0,ppo,routed,candidate,1,40000,8,58.5805,225.9482,142.5,16.6509,93.2469,27.1247
 congested,standard,15.0,4.0,ppo,routed,candidate,2,40000,8,53.8298,259.9789,128.0,21.0995,123.7697,26.2298
+congested,standard,15.0,4.0,ppo,attribution,candidate,3,40000,8,64.9039,214.8412,146.0,22.02,116.7232,32.8024
+congested,standard,15.0,4.0,ppo,attribution,candidate,4,40000,8,50.7868,297.015,123.5,17.7627,124.296,29.219
+congested,standard,15.0,4.0,ppo,attribution,candidate,5,40000,8,59.0252,247.5722,132.0,16.2045,99.4202,34.9285
+congested,standard,15.0,4.0,ppo,attribution,candidate,6,40000,8,47.3095,303.6263,119.5,13.9493,95.9229,26.2631
+congested,standard,15.0,4.0,ppo,attribution,candidate,7,40000,8,53.3915,275.2567,126.5,12.7479,90.3399,23.9948
+congested,standard,15.0,4.0,ppo,attribution_full,candidate,3,40000,8,48.3117,308.2989,112.0,8.8368,83.067,23.2379
+congested,standard,15.0,4.0,ppo,attribution_full,candidate,4,40000,8,43.0497,296.3424,121.5,12.4475,105.2684,20.1928
+congested,standard,15.0,4.0,ppo,attribution_full,candidate,5,40000,8,50.6929,305.9437,123.0,14.4736,99.8065,18.6279
+congested,standard,15.0,4.0,ppo,attribution_full,candidate,6,40000,8,51.5291,283.2358,116.0,18.5595,117.5882,26.1534
+congested,standard,15.0,4.0,ppo,attribution_full,candidate,7,40000,8,55.1168,273.4377,126.5,17.649,112.0356,34.5217
