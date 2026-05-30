@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Deterministic reinforcement-learning control seam for the WareMax warehouse simulator: Gym-style env, attribution-shaped and per-decision routed reward modes for dispatching"
 
 [dependencies]
 waremax-core = { workspace = true }
