@@ -10,12 +10,14 @@
 [![Gymnasium](https://img.shields.io/badge/gymnasium-env-9cf.svg?style=flat-square)](https://gymnasium.farama.org/)
 [![Status](https://img.shields.io/badge/status-research-yellow.svg?style=flat-square)](#research)
 
+[Website](https://waremax.skelfresearch.com) ·
 [Getting Started](#getting-started) ·
 [RL Quickstart](#reinforcement-learning-quickstart) ·
 [Research](#research) ·
 [Concepts](#concepts) ·
 [FAQ](#faq) ·
-[Cite](#citation)
+[Cite](#citation) ·
+[Skelf Research](https://skelfresearch.com)
 
 </div>
 
@@ -315,3 +317,15 @@ MIT. See [LICENSE](LICENSE).
 ---
 
 <sub>Keywords: warehouse robotics, robotic mobile fulfillment system, RMFS, AMR, autonomous mobile robot, discrete-event simulation, DES, reinforcement learning benchmark, Gymnasium environment, MaskablePPO, attribution-shaped reward, dispatching, task allocation, multi-agent path finding, MAPF, Kiva, fleet sizing, throughput, p95 lateness, Rust, PyO3.</sub>
+
+---
+
+## Part of Skelf Research
+
+`waremax` is built by **[Skelf Research](https://skelfresearch.com)** — an independent UK AI research lab publishing production-grade open-source projects.
+
+🌐 [Website](https://waremax.skelfresearch.com) · 📚 [Documentation](https://docs.skelfresearch.com/waremax) · 🔬 [All projects](https://skelfresearch.com/projects) · 🤗 [Hugging Face](https://huggingface.co/skelfresearch)
+
+**Related projects:** [numaperf](https://numaperf.skelfresearch.com) (NUMA-first Rust runtime) · [sigc](https://sigc.skelfresearch.com) (the quant's compiler) · [gpuemu](https://gpuemu.skelfresearch.com) (GPU kernel correctness)
+
+<sub>Released under MIT / Apache-2.0. © Skelf Research Limited.</sub>
